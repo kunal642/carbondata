@@ -42,6 +42,7 @@ object DataTypeConverterUtil {
       case "date" => DataType.DATE
       case "array" => DataType.ARRAY
       case "struct" => DataType.STRUCT
+      case "map" => DataType.MAP
       case _ => convertToCarbonTypeForSpark2(dataType)
     }
   }
@@ -67,6 +68,8 @@ object DataTypeConverterUtil {
           DataType.ARRAY
         } else if (others != null && others.startsWith("structtype")) {
           DataType.STRUCT
+        } else if (others != null && others.startsWith("maptype")) {
+            DataType.MAP
         } else if (others != null && others.startsWith("char")) {
           DataType.STRING
         } else if (others != null && others.startsWith("varchar")) {
@@ -90,6 +93,7 @@ object DataTypeConverterUtil {
       case DataType.DATE => "date"
       case DataType.ARRAY => "array"
       case DataType.STRUCT => "struct"
+      case DataType.MAP => "map"
     }
   }
 
@@ -114,6 +118,7 @@ object DataTypeConverterUtil {
       case "timestamp" => ThriftDataType.TIMESTAMP
       case "array" => ThriftDataType.ARRAY
       case "struct" => ThriftDataType.STRUCT
+      case "map" => ThriftDataType.MAP
       case _ => ThriftDataType.STRING
     }
   }

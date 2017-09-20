@@ -404,6 +404,10 @@ object CarbonDictionaryDecoder {
       case DataType.ARRAY =>
         CarbonMetastoreTypes
           .toDataType(s"array<${ relation.getArrayChildren(carbonDimension.getColName) }>")
+      case DataType.MAP =>
+        CarbonMetastoreTypes
+          .toDataType(s"map<${ relation.getMapChildren(carbonDimension.getColName) }>")
+
     }
   }
 

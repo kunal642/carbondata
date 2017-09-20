@@ -21,6 +21,7 @@ import java.util.List;
 import org.apache.carbondata.core.metadata.schema.table.column.CarbonColumn;
 import org.apache.carbondata.core.metadata.schema.table.column.CarbonDimension;
 import org.apache.carbondata.processing.newflow.parser.impl.ArrayParserImpl;
+import org.apache.carbondata.processing.newflow.parser.impl.MapParserImpl;
 import org.apache.carbondata.processing.newflow.parser.impl.PrimitiveParserImpl;
 import org.apache.carbondata.processing.newflow.parser.impl.StructParserImpl;
 
@@ -72,7 +73,13 @@ public final class CarbonParserFactory {
         }
         return parser;
       case MAP:
-        throw new UnsupportedOperationException("Complex type Map is not supported yet");
+        List<CarbonDimension> childDimensions =
+            ((CarbonDimension) carbonColumn).getListOfChildDimensions();
+        MapParserImpl mapParser = new MapParserImpl(complexDelimiters, nullFormat);
+        for (CarbonDimension dimension : childDimensions) {
+          mapParser.addChildren(createParser(dimension, complexDelimiters, nullFormat, 0));
+        }
+        return mapParser;
       default:
         return new PrimitiveParserImpl();
     }

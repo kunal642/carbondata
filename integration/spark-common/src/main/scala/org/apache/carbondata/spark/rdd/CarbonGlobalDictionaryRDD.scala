@@ -86,7 +86,7 @@ case class PrimitiveParser(dimension: CarbonDimension,
   def parseString(input: String): Unit = {
     if (hasDictEncoding && input != null) {
       if (set.size < CarbonLoadOptionConstants.MAX_EXTERNAL_DICTIONARY_SIZE) {
-        set.add(input)
+        set.+=(input)
       } else {
         throw new NoRetryException(s"Cannot provide more than ${
           CarbonLoadOptionConstants.MAX_EXTERNAL_DICTIONARY_SIZE } dictionary values")
@@ -133,6 +133,27 @@ case class StructParser(dimension: CarbonDimension,
   }
 }
 
+case class MapParser(dimension: CarbonDimension,
+    format: DataFormat) extends GenericParser {
+
+  val children = new ArrayBuffer[GenericParser]
+
+  def addChild(child: GenericParser): Unit = {
+    children += child
+  }
+
+  def parseString(input: String): Unit = {
+    if (StringUtils.isNotEmpty(input)) {
+      val splits = format.getSplits(input)
+      val finalSplits = format.cloneAndIncreaseIndex.getMapSplits(splits)
+      val len = finalSplits.length
+      for (i <- 0 until len) {
+        children(i % 2).parseString(finalSplits(i))
+      }
+    }
+  }
+}
+
 case class DataFormat(delimiters: Array[String],
     var delimiterIndex: Int,
     patterns: Array[Pattern]) extends Serializable {
@@ -141,6 +162,10 @@ case class DataFormat(delimiters: Array[String],
     // -1 in case after splitting the last column is empty, the surrogate key ahs to be generated
     // for empty value too
     patterns(delimiterIndex).split(input, -1)
+  }
+
+  def getMapSplits(input: Array[String]): Array[String] = {
+    patterns(delimiterIndex).split(input.mkString(delimiters(delimiterIndex)).replace("\\",""))
   }
 
   def cloneAndIncreaseIndex: DataFormat = {

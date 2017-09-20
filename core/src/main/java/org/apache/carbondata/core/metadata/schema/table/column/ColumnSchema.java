@@ -353,11 +353,8 @@ public class ColumnSchema implements Serializable, Writable {
    * false.
    */
   public Boolean isComplex() {
-    if (DataType.ARRAY.equals(this.getDataType()) || DataType.STRUCT.equals(this.getDataType())) {
-      return true;
-    } else {
-      return false;
-    }
+    return DataType.ARRAY.equals(this.getDataType()) || DataType.STRUCT.equals(this.getDataType())
+        || DataType.MAP.equals(this.getDataType());
   }
 
   /**

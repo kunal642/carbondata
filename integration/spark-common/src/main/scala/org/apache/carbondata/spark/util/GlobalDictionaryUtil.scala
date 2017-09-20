@@ -269,6 +269,10 @@ object GlobalDictionaryUtil {
             val stuDim = StructParser(dim, format)
             generateParserForChildrenDimension(dim, format, mapColumnValuesWithId, stuDim)
             Some(stuDim)
+          case DataType.MAP =>
+            val mapDim = MapParser(dim, format)
+            generateParserForChildrenDimension(dim, format, mapColumnValuesWithId, mapDim)
+            Some(mapDim)
           case _ =>
             Some(PrimitiveParser(dim, mapColumnValuesWithId.get(dim.getColumnId)))
         }

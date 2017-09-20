@@ -366,6 +366,8 @@ public abstract class AbstractDataFileFooterConverter {
         return DataType.ARRAY;
       case STRUCT:
         return DataType.STRUCT;
+      case MAP:
+        return DataType.MAP;
       default:
         return DataType.STRING;
     }

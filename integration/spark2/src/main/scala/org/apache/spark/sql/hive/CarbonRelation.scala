@@ -83,6 +83,22 @@ case class CarbonRelation(
     }).mkString(",")
   }
 
+  def getMapChildren(dimName: String): String = {
+    metaData.carbonTable.getChildren(dimName).asScala.map { childDim =>
+      childDim.getDataType.toString.toLowerCase match {
+        case "array" => getArrayChildren(dimName)
+        case "struct" => getStructChildren(dimName)
+        case "map" => s"${
+          childDim.getColName.substring(dimName.length + 1)
+        }:map<${
+          metaData.carbonTable.getChildren(childDim.getColName)
+            .asScala.map(f => s"${ getMapChildren(childDim.getColName) }").mkString(",")
+        }>"
+        case dType => addDecimalScaleAndPrecision(childDim, dType)
+      }
+    }.mkString(",")
+  }
+
   override def newInstance(): LogicalPlan = {
     CarbonRelation(databaseName, tableName, metaData, tableMeta)
       .asInstanceOf[this.type]
@@ -101,6 +117,8 @@ case class CarbonRelation(
           CarbonMetastoreTypes.toDataType(s"array<${ getArrayChildren(dim.getColName) }>")
         case "struct" =>
           CarbonMetastoreTypes.toDataType(s"struct<${ getStructChildren(dim.getColName) }>")
+        case "map" =>
+          CarbonMetastoreTypes.toDataType(s"map<${ getMapChildren(dim.getColName) }>")
         case dType =>
           val dataType = addDecimalScaleAndPrecision(dimval, dType)
           CarbonMetastoreTypes.toDataType(dataType)
@@ -139,6 +157,8 @@ case class CarbonRelation(
             CarbonMetastoreTypes.toDataType(s"array<${getArrayChildren(column.getColName)}>")
           case "struct" =>
             CarbonMetastoreTypes.toDataType(s"struct<${getStructChildren(column.getColName)}>")
+          case "map" =>
+            CarbonMetastoreTypes.toDataType(s"map<${getMapChildren(column.getColName)}>")
           case dType =>
             val dataType = addDecimalScaleAndPrecision(column, dType)
             CarbonMetastoreTypes.toDataType(dataType)

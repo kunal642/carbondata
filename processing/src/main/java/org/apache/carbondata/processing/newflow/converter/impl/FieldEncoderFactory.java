@@ -30,6 +30,7 @@ import org.apache.carbondata.core.metadata.schema.table.column.CarbonColumn;
 import org.apache.carbondata.core.metadata.schema.table.column.CarbonDimension;
 import org.apache.carbondata.processing.datatypes.ArrayDataType;
 import org.apache.carbondata.processing.datatypes.GenericDataType;
+import org.apache.carbondata.processing.datatypes.MapDataType;
 import org.apache.carbondata.processing.datatypes.PrimitiveDataType;
 import org.apache.carbondata.processing.datatypes.StructDataType;
 import org.apache.carbondata.processing.newflow.DataField;
@@ -132,7 +133,17 @@ public class FieldEncoderFactory {
         }
         return structDataType;
       case MAP:
-        throw new UnsupportedOperationException("Complex type Map is not supported yet");
+        List<CarbonDimension> childDimensions =
+            ((CarbonDimension) carbonColumn).getListOfChildDimensions();
+        // Create struct parser with complex delimiter
+        MapDataType mapDataType =
+            new MapDataType(carbonColumn.getColName(), parentName, carbonColumn.getColumnId());
+        for (CarbonDimension dimension : childDimensions) {
+          mapDataType.addChildren(
+              createComplexType(dimension, carbonColumn.getColName(), cache, carbonTableIdentifier,
+                  client, useOnePass, storePath, localCache));
+        }
+        return mapDataType;
       default:
         return new PrimitiveDataType(carbonColumn.getColName(), parentName,
             carbonColumn.getColumnId(), (CarbonDimension) carbonColumn, cache,

@@ -34,6 +34,7 @@ enum DataType {
 	DATE = 7,
 	ARRAY = 20,
 	STRUCT = 21,
+	MAP = 22
 }
 
 /**

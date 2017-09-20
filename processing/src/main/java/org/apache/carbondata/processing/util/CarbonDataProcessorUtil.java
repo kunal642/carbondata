@@ -50,6 +50,7 @@ import org.apache.carbondata.core.util.path.CarbonStorePath;
 import org.apache.carbondata.core.util.path.CarbonTablePath;
 import org.apache.carbondata.processing.datatypes.ArrayDataType;
 import org.apache.carbondata.processing.datatypes.GenericDataType;
+import org.apache.carbondata.processing.datatypes.MapDataType;
 import org.apache.carbondata.processing.datatypes.PrimitiveDataType;
 import org.apache.carbondata.processing.datatypes.StructDataType;
 import org.apache.carbondata.processing.model.CarbonDataLoadSchema;
@@ -279,7 +280,8 @@ public final class CarbonDataProcessorUtil {
     for (int i = 0; i < dataFields.length; i++) {
       DataField dataField = dataFields[i];
       if (dataField.getColumn().getDataType().equals(DataType.ARRAY) || dataField.getColumn()
-          .getDataType().equals(DataType.STRUCT)) {
+          .getDataType().equals(DataType.STRUCT) || dataField.getColumn()
+          .getDataType().equals(DataType.MAP)) {
         addAllComplexTypeChildren((CarbonDimension) dataField.getColumn(), dimString, "");
         dimString.append(CarbonCommonConstants.SEMICOLON_SPC_CHARACTER);
       }
@@ -321,9 +323,14 @@ public final class CarbonDataProcessorUtil {
     for (int i = 0; i < hierarchies.length; i++) {
       String[] levels = hierarchies[i].split(CarbonCommonConstants.HASH_SPC_CHARACTER);
       String[] levelInfo = levels[0].split(CarbonCommonConstants.COLON_SPC_CHARACTER);
-      GenericDataType g = levelInfo[1].equals(CarbonCommonConstants.ARRAY) ?
-          new ArrayDataType(levelInfo[0], "", levelInfo[3]) :
-          new StructDataType(levelInfo[0], "", levelInfo[3]);
+      GenericDataType g;
+      if (levelInfo[1].equals(CarbonCommonConstants.ARRAY)) {
+        g = new ArrayDataType(levelInfo[0], "", levelInfo[3]);
+      } else if (levelInfo[1].equals(CarbonCommonConstants.STRUCT)) {
+        g = new StructDataType(levelInfo[0], "", levelInfo[3]);
+      } else {
+        g = new MapDataType(levelInfo[0], levelInfo[0], levelInfo[3]);
+      }
       complexTypesMap.put(levelInfo[0], g);
       for (int j = 1; j < levels.length; j++) {
         levelInfo = levels[j].split(CarbonCommonConstants.COLON_SPC_CHARACTER);
@@ -334,6 +341,8 @@ public final class CarbonDataProcessorUtil {
           case CarbonCommonConstants.STRUCT:
             g.addChildren(new StructDataType(levelInfo[0], levelInfo[2], levelInfo[3]));
             break;
+          case CarbonCommonConstants.MAP:
+            g.addChildren(new MapDataType(levelInfo[0], levelInfo[2], levelInfo[3]));
           default:
             g.addChildren(new PrimitiveDataType(levelInfo[0], levelInfo[2], levelInfo[3],
                 Integer.parseInt(levelInfo[4])));

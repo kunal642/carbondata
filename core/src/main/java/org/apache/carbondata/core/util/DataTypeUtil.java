@@ -79,6 +79,7 @@ public final class DataTypeUtil {
     dataTypeDisplayNames.put(DataType.DECIMAL.toString(), DataType.DECIMAL.getName());
     dataTypeDisplayNames.put(DataType.ARRAY.toString(), DataType.ARRAY.getName());
     dataTypeDisplayNames.put(DataType.STRUCT.toString(), DataType.STRUCT.getName());
+    dataTypeDisplayNames.put(DataType.MAP.toString(), DataType.MAP.getName());
     dataTypeDisplayNames.put(DataType.TIMESTAMP.toString(), DataType.TIMESTAMP.getName());
     dataTypeDisplayNames.put(DataType.DATE.toString(), DataType.DATE.getName());
     dataTypeDisplayNames.put(DataType.SHORT.toString(), DataType.SHORT.getName());
@@ -272,6 +273,8 @@ public final class DataTypeUtil {
         dataType = DataType.STRUCT;
         break;
       case "MAP":
+        dataType = DataType.MAP;
+        break;
       default:
         dataType = DataType.STRING;
     }

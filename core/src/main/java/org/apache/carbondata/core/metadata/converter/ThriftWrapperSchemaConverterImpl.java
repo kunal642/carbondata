@@ -147,6 +147,8 @@ public class ThriftWrapperSchemaConverterImpl implements SchemaConverter {
         return org.apache.carbondata.format.DataType.ARRAY;
       case STRUCT:
         return org.apache.carbondata.format.DataType.STRUCT;
+      case MAP:
+        return org.apache.carbondata.format.DataType.MAP;
       default:
         return org.apache.carbondata.format.DataType.STRING;
     }
@@ -381,6 +383,8 @@ public class ThriftWrapperSchemaConverterImpl implements SchemaConverter {
         return DataType.ARRAY;
       case STRUCT:
         return DataType.STRUCT;
+      case MAP:
+        return DataType.MAP;
       default:
         return DataType.STRING;
     }

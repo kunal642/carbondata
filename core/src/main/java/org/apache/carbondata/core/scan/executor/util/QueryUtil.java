@@ -48,6 +48,7 @@ import org.apache.carbondata.core.metadata.schema.table.CarbonTable;
 import org.apache.carbondata.core.metadata.schema.table.column.CarbonDimension;
 import org.apache.carbondata.core.metadata.schema.table.column.CarbonMeasure;
 import org.apache.carbondata.core.scan.complextypes.ArrayQueryType;
+import org.apache.carbondata.core.scan.complextypes.MapQueryType;
 import org.apache.carbondata.core.scan.complextypes.PrimitiveQueryType;
 import org.apache.carbondata.core.scan.complextypes.StructQueryType;
 import org.apache.carbondata.core.scan.executor.infos.KeyStructureInfo;
@@ -778,13 +779,20 @@ public class QueryUtil {
       CarbonDimension dimension, Map<Integer, GenericQueryType> complexTypeMap,
       int[] eachComplexColumnValueSize, Map<String, Dictionary> columnIdToDictionaryMap) {
     int parentBlockIndex = dimensionToBlockIndexMap.get(dimension.getOrdinal());
-    GenericQueryType parentQueryType = dimension.getDataType().equals(DataType.ARRAY) ?
-        new ArrayQueryType(dimension.getColName(), dimension.getColName(), parentBlockIndex) :
-        new StructQueryType(dimension.getColName(), dimension.getColName(),
-            dimensionToBlockIndexMap.get(dimension.getOrdinal()));
+    GenericQueryType parentQueryType;
+    if (dimension.getDataType().equals(DataType.ARRAY)) {
+      parentQueryType =
+          new ArrayQueryType(dimension.getColName(), dimension.getColName(), parentBlockIndex);
+    } else if (dimension.getDataType().equals(DataType.STRUCT)) {
+      parentQueryType = new StructQueryType(dimension.getColName(), dimension.getColName(),
+          dimensionToBlockIndexMap.get(dimension.getOrdinal()));
+    } else {
+      parentQueryType = new MapQueryType(dimension.getColName(), dimension.getColName(),
+          dimensionToBlockIndexMap.get(dimension.getOrdinal()));
+    }
     complexTypeMap.put(dimension.getOrdinal(), parentQueryType);
     fillChildrenDetails(eachComplexColumnValueSize, columnIdToDictionaryMap, parentBlockIndex,
-            dimension, parentQueryType);
+        dimension, parentQueryType);
   }
 
   private static int fillChildrenDetails(int[] eachComplexColumnValueSize,

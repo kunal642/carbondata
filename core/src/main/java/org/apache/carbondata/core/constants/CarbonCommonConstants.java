@@ -628,6 +628,7 @@ public final class CarbonCommonConstants {
   public static final String TIMESTAMP = "Timestamp";
   public static final String ARRAY = "ARRAY";
   public static final String STRUCT = "STRUCT";
+  public static final String MAP = "MAP";
   public static final String FROM = "from";
   /**
    * FACT_UPDATE_EXTENSION.

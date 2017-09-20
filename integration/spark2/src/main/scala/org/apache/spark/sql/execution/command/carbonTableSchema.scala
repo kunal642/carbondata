@@ -1038,11 +1038,11 @@ case class LoadTable(
             (dataFrame, dataFrame)
           }
 
-            GlobalDictionaryUtil.generateGlobalDictionary(
-                sparkSession.sqlContext,
-                carbonLoadModel,
-                relation.tableMeta.storePath,
-                dictionaryDataFrame)
+          GlobalDictionaryUtil.generateGlobalDictionary(
+            sparkSession.sqlContext,
+            carbonLoadModel,
+            relation.tableMeta.storePath,
+            dictionaryDataFrame)
           CarbonDataRDDFactory.loadCarbonData(sparkSession.sqlContext,
             carbonLoadModel,
             relation.tableMeta.storePath,
