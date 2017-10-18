@@ -33,8 +33,10 @@ import org.apache.carbondata.core.metadata.CarbonTableIdentifier
 import org.apache.carbondata.core.metadata.datatype.{DataType, DataTypes}
 import org.apache.carbondata.core.metadata.encoder.Encoding
 import org.apache.carbondata.core.metadata.schema._
-import org.apache.carbondata.core.metadata.schema.table.{CarbonTable, RelationIdentifier, TableInfo, TableSchema}
-import org.apache.carbondata.core.metadata.schema.table.column.{ColumnSchema, ParentColumnTableRelation}
+import org.apache.carbondata.core.metadata.schema.table.{CarbonTable, RelationIdentifier,
+TableInfo, TableSchema}
+import org.apache.carbondata.core.metadata.schema.table.column.{ColumnSchema,
+ParentColumnTableRelation}
 import org.apache.carbondata.core.service.CarbonCommonFactory
 import org.apache.carbondata.core.statusmanager.{LoadMetadataDetails, SegmentUpdateStatusManager}
 import org.apache.carbondata.core.util.DataTypeUtil
@@ -332,7 +334,6 @@ class AlterTableColumnSchemaGenerator(
     if (dataType == DataTypes.TIMESTAMP && !alterTableModel.highCardinalityDims.contains(colName)) {
       encoders.add(Encoding.DIRECT_DICTIONARY)
     }
-    val colPropMap = new java.util.HashMap[String, String]()
     columnSchema.setEncodingList(encoders)
     val colUniqueIdGenerator = CarbonCommonFactory.getColumnUniqueIdGenerator
     val columnUniqueId = colUniqueIdGenerator.generateUniqueId(
@@ -420,7 +421,7 @@ class TableNewProcessor(cm: TableModel) {
     columnSchema.setSortColumn(false)
     if(isParentColumnRelation) {
       val dataMapField = map.get.get(field).get
-      columnSchema.setAggFunction(dataMapField.aggregateFunction);
+      columnSchema.setAggFunction(dataMapField.aggregateFunction)
         val relation = dataMapField.columnTableRelation.get
         val parentColumnTableRelationList = new util.ArrayList[ParentColumnTableRelation]
         val relationIdentifier = new RelationIdentifier(
@@ -558,12 +559,12 @@ class TableNewProcessor(cm: TableModel) {
         dataType = None, name = None, children = None)
       val columnSchema: ColumnSchema =
         getColumnSchema(DataTypes.DOUBLE,
-        CarbonCommonConstants.DEFAULT_INVISIBLE_DUMMY_MEASURE,
-        index,
-        true,
-        encoders,
-        false,
-        -1, field, cm.dataMapRelation)
+          CarbonCommonConstants.DEFAULT_INVISIBLE_DUMMY_MEASURE,
+          index,
+          true,
+          encoders,
+          false,
+          -1, field, cm.dataMapRelation)
       columnSchema.setInvisible(true)
       allColumns :+= columnSchema
     }
