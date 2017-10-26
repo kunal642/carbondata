@@ -52,6 +52,10 @@ public final class CarbonLoadOptionConstants {
   public static final String CARBON_OPTIONS_DATEFORMAT =
       "carbon.options.dateformat";
   public static final String CARBON_OPTIONS_DATEFORMAT_DEFAULT = "";
+
+  public static final String CARBON_AGGREGATE_SEGMENTS = "carbon.aggregate.segments";
+
+  public static final String CARBON_AGGREGATE_SEGMENTS_DEFAULT = "";
   /**
    * option to specify the sort_scope
    */

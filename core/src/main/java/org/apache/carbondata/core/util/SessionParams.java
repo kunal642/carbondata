@@ -29,6 +29,7 @@ import org.apache.carbondata.core.exception.InvalidConfigurationException;
 
 import static org.apache.carbondata.core.constants.CarbonCommonConstants.CARBON_CUSTOM_BLOCK_DISTRIBUTION;
 import static org.apache.carbondata.core.constants.CarbonCommonConstants.ENABLE_UNSAFE_SORT;
+import static org.apache.carbondata.core.constants.CarbonLoadOptionConstants.CARBON_AGGREGATE_SEGMENTS;
 import static org.apache.carbondata.core.constants.CarbonLoadOptionConstants.CARBON_OPTIONS_BAD_RECORDS_ACTION;
 import static org.apache.carbondata.core.constants.CarbonLoadOptionConstants.CARBON_OPTIONS_BAD_RECORDS_LOGGER_ENABLE;
 import static org.apache.carbondata.core.constants.CarbonLoadOptionConstants.CARBON_OPTIONS_BAD_RECORD_PATH;
@@ -143,11 +144,18 @@ public class SessionParams implements Serializable {
       case CARBON_OPTIONS_DATEFORMAT:
         isValid = true;
         break;
+      case CARBON_AGGREGATE_SEGMENTS:
+        isValid = true;
+        break;
       default:
         throw new InvalidConfigurationException(
             "The key " + key + " not supported for dynamic configuration.");
     }
     return isValid;
+  }
+
+  public void removeProperty(String property) {
+    sProps.remove(property);
   }
 
   /**

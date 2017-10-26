@@ -17,7 +17,6 @@
 package org.apache.spark.sql.hive
 
 import org.apache.hadoop.conf.Configuration
-import org.apache.spark.sql.{CarbonDatasourceHadoopRelation, CarbonEnv, ExperimentalMethods, SparkSession, Strategy}
 import org.apache.spark.sql.catalyst.TableIdentifier
 import org.apache.spark.sql.catalyst.analysis.{Analyzer, FunctionRegistry}
 import org.apache.spark.sql.catalyst.catalog.{FunctionResourceLoader, GlobalTempViewManager, SessionCatalog}
@@ -27,17 +26,17 @@ import org.apache.spark.sql.catalyst.parser.ParserInterface
 import org.apache.spark.sql.catalyst.plans.logical.{Filter, LogicalPlan, SubqueryAlias}
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.SparkOptimizer
-import org.apache.spark.sql.execution.command.preaaggregate.{DropTablePostListener, DropTablePreListener}
+import org.apache.spark.sql.execution.command.preaaggregate.{DropTablePostListener, DropTablePreListener, LoadPreAggregateListener}
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.execution.strategy.{CarbonLateDecodeStrategy, DDLStrategy}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.optimizer.CarbonLateDecodeRule
 import org.apache.spark.sql.parser.CarbonSparkSqlParser
-import org.apache.spark.util.Utils
+import org.apache.spark.sql.{CarbonDatasourceHadoopRelation, CarbonEnv, ExperimentalMethods, SparkSession, Strategy}
 
 import org.apache.carbondata.core.datamap.DataMapStoreManager
 import org.apache.carbondata.core.metadata.AbsoluteTableIdentifier
-import org.apache.carbondata.events.{DropTablePostEvent, DropTablePreEvent, ListenerBus}
+import org.apache.carbondata.events.{DropTablePostEvent, DropTablePreEvent, ListenerBus, LoadTablePostExecutionEvent}
 
 /**
  * This class will have carbon catalog and refresh the relation from cache if the carbontable in
@@ -134,6 +133,8 @@ object CarbonSessionState {
   def init(): Unit = {
     ListenerBus.getInstance().addListener(DropTablePreEvent.eventType, new DropTablePreListener)
     ListenerBus.getInstance().addListener(DropTablePostEvent.eventType, new DropTablePostListener)
+    ListenerBus.getInstance()
+      .addListener(LoadTablePostExecutionEvent.eventType, new LoadPreAggregateListener)
   }
 
 }

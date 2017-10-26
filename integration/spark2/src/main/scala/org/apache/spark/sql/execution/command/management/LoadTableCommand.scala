@@ -35,8 +35,9 @@ import org.apache.carbondata.core.dictionary.server.DictionaryServer
 import org.apache.carbondata.core.metadata.encoder.Encoding
 import org.apache.carbondata.core.metadata.schema.table.column.CarbonDimension
 import org.apache.carbondata.core.mutate.{CarbonUpdateUtil, TupleIdEnum}
-import org.apache.carbondata.core.util.{CarbonProperties, CarbonUtil}
 import org.apache.carbondata.core.util.path.CarbonStorePath
+import org.apache.carbondata.core.util.{CarbonProperties, CarbonUtil}
+import org.apache.carbondata.events.{ListenerBus, LoadTablePostExecutionEvent}
 import org.apache.carbondata.format
 import org.apache.carbondata.processing.exception.DataLoadingException
 import org.apache.carbondata.processing.loading.constants.DataLoadProcessorConstants
@@ -200,6 +201,9 @@ case class LoadTableCommand(
       // Need to fill dimension relation
       carbonLoadModel.setCarbonDataLoadSchema(dataLoadSchema)
 
+      val parentRelations = table.getTableInfo.getParentRelationIdentifiers
+      carbonLoadModel.setAggLoadRequest(!parentRelations.isEmpty)
+
       val partitionLocation = relation.tableMeta.storePath + "/partition/" +
                               relation.tableMeta.carbonTableIdentifier.getDatabaseName + "/" +
                               relation.tableMeta.carbonTableIdentifier.getTableName + "/"
@@ -329,6 +333,10 @@ case class LoadTableCommand(
           LOGGER.audit(s"Cannot use single_pass=true for $dbName.$tableName during the first load")
           carbonLoadModel.setUseOnePass(false)
         }
+        // if table is an aggregate table then disable single pass.
+        if (carbonLoadModel.isAggLoadRequest) {
+          carbonLoadModel.setUseOnePass(false)
+        }
         // Create table and metadata folders if not exist
         val carbonTablePath = CarbonStorePath
           .getCarbonTablePath(storePath, table.getCarbonTableIdentifier)
@@ -427,12 +435,13 @@ case class LoadTableCommand(
           } else {
             (dataFrame, dataFrame)
           }
-
-          GlobalDictionaryUtil.generateGlobalDictionary(
-            sparkSession.sqlContext,
-            carbonLoadModel,
-            relation.tableMeta.storePath,
-            dictionaryDataFrame)
+          if (parentRelations.isEmpty) {
+            GlobalDictionaryUtil.generateGlobalDictionary(
+              sparkSession.sqlContext,
+              carbonLoadModel,
+              relation.tableMeta.storePath,
+              dictionaryDataFrame)
+          }
           CarbonDataRDDFactory.loadCarbonData(sparkSession.sqlContext,
             carbonLoadModel,
             relation.tableMeta.storePath,
@@ -442,6 +451,10 @@ case class LoadTableCommand(
             isOverwriteTable,
             loadDataFrame,
             updateModel)
+          val loadAggregationEvent = LoadTablePostExecutionEvent(sparkSession,
+            table.getCarbonTableIdentifier,
+            carbonLoadModel)
+          ListenerBus.getInstance().fireEvent(loadAggregationEvent)
         }
       } catch {
         case CausedBy(ex: NoRetryException) =>

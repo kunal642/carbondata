@@ -769,12 +769,10 @@ object CarbonDataRDDFactory {
           val nodes = DistributionUtil.ensureExecutorsByNumberAndGetNodeList(nodeNumOfData,
             sqlContext.sparkContext)
           val newRdd = new DataLoadCoalescedRDD[Row](rdd, nodes.toArray.distinct)
-
           status = new NewDataFrameLoaderRDD(sqlContext.sparkContext,
             new DataLoadResultImpl(),
             carbonLoadModel,
             newRdd).collect()
-
         } catch {
           case ex: Exception =>
             LOGGER.error(ex, "load data frame failed")

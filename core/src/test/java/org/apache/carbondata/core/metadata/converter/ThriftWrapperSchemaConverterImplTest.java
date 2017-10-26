@@ -26,10 +26,10 @@ import org.apache.carbondata.core.metadata.datatype.DataTypes;
 import org.apache.carbondata.core.metadata.encoder.Encoding;
 import org.apache.carbondata.core.metadata.schema.SchemaEvolution;
 import org.apache.carbondata.core.metadata.schema.SchemaEvolutionEntry;
+import org.apache.carbondata.core.metadata.schema.table.DataMapSchema;
 import org.apache.carbondata.core.metadata.schema.table.TableInfo;
 import org.apache.carbondata.core.metadata.schema.table.TableSchema;
 import org.apache.carbondata.core.metadata.schema.table.column.ColumnSchema;
-import org.apache.carbondata.format.DataMapSchema;
 
 import mockit.Mock;
 import mockit.MockUp;
@@ -423,7 +423,7 @@ public class ThriftWrapperSchemaConverterImplTest {
     thriftColumnSchema.setSchemaOrdinal(1);
     thriftColumnSchema.setAggregate_function("");
     ColumnSchema wrapperColumnSchema = new ColumnSchema();
-
+    thriftColumnSchema.setAggregate_function("");
     new MockUp<ColumnSchema>() {
       @Mock public List<Encoding> getEncodingList() {
         return encodings;
@@ -1100,7 +1100,6 @@ public class ThriftWrapperSchemaConverterImplTest {
             "columnName", "1", true, encoders, true);
     thriftColumnSchema.setSchemaOrdinal(1);
     thriftColumnSchema.setAggregate_function("");
-
     new MockUp<ColumnSchema>() {
       @Mock public List<Encoding> getEncodingList() {
         return encodings;
@@ -1176,7 +1175,6 @@ public class ThriftWrapperSchemaConverterImplTest {
             true);
     thriftColumnSchema.setSchemaOrdinal(1);
     thriftColumnSchema.setAggregate_function("");
-
     new MockUp<ColumnSchema>() {
       @Mock public List<Encoding> getEncodingList() {
         return encodings;
@@ -1438,12 +1436,12 @@ public class ThriftWrapperSchemaConverterImplTest {
 
   @Test public void testFromWrapperToExternalTableInfo() {
     TableInfo wrapperTableInfo = new TableInfo();
+    wrapperTableInfo.setDataMapSchemaList(new ArrayList<DataMapSchema>());
     String dbName = "dbName";
     String tableName = "TableName";
     final TableSchema wrapperTableSchema = new TableSchema();
     final List<TableSchema> tableSchemas = new ArrayList<>();
     tableSchemas.add(wrapperTableSchema);
-
     new MockUp<SchemaEvolutionEntry>() {
       @Mock public List<ColumnSchema> getAdded() {
         return columnSchemas;
@@ -1552,12 +1550,12 @@ public class ThriftWrapperSchemaConverterImplTest {
     org.apache.carbondata.format.TableInfo expectedResult =
         new org.apache.carbondata.format.TableInfo(thriftFactTable, new ArrayList<org.apache
             .carbondata.format.TableSchema>());
-    expectedResult.setDataMapSchemas(new ArrayList<DataMapSchema>());
+    expectedResult.setDataMapSchemas(new ArrayList<org.apache.carbondata.format.DataMapSchema>());
     assertEquals(expectedResult, actualResult);
   }
 
   @Test public void testFromExternalToWrapperSchemaEvolutionEntry() {
-long time =1112745600000L;
+    long time =1112745600000L;
     ColumnSchema wrapperColumnSchema = new ColumnSchema();
     wrapperColumnSchema.setColumnUniqueId("1");
     wrapperColumnSchema.setColumnName("columnName");
@@ -1727,7 +1725,7 @@ long time =1112745600000L;
         new org.apache.carbondata.format.ColumnSchema(org.apache.carbondata.format.DataType.STRING,
             "columnName", "1", true, encoders, true);
     thriftColumnSchema.setSchemaOrdinal(1);
-
+    thriftColumnSchema.setAggregate_function("");
     new MockUp<org.apache.carbondata.format.ColumnSchema>() {
       @Mock
       public org.apache.carbondata.format.ColumnSchema setColumn_group_id(int column_group_id) {

@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.carbondata.core.constants.CarbonCommonConstants;
+import org.apache.carbondata.core.constants.CarbonLoadOptionConstants;
 import org.apache.carbondata.core.datamap.DataMapStoreManager;
 import org.apache.carbondata.core.datamap.TableDataMap;
 import org.apache.carbondata.core.indexstore.ExtendedBlocklet;
@@ -57,10 +58,13 @@ import org.apache.carbondata.core.stats.QueryStatisticsConstants;
 import org.apache.carbondata.core.stats.QueryStatisticsRecorder;
 import org.apache.carbondata.core.statusmanager.SegmentStatusManager;
 import org.apache.carbondata.core.statusmanager.SegmentUpdateStatusManager;
+import org.apache.carbondata.core.util.CarbonSessionInfo;
 import org.apache.carbondata.core.util.CarbonTimeStatisticsFactory;
 import org.apache.carbondata.core.util.CarbonUtil;
 import org.apache.carbondata.core.util.DataTypeConverter;
 import org.apache.carbondata.core.util.DataTypeConverterImpl;
+import org.apache.carbondata.core.util.SessionParams;
+import org.apache.carbondata.core.util.ThreadLocalSessionInfo;
 import org.apache.carbondata.core.util.path.CarbonStorePath;
 import org.apache.carbondata.core.util.path.CarbonTablePath;
 import org.apache.carbondata.hadoop.CarbonInputSplit;
@@ -271,12 +275,33 @@ public class CarbonTableInputFormat<T> extends FileInputFormat<Void, T> {
    */
   @Override public List<InputSplit> getSplits(JobContext job) throws IOException {
     AbsoluteTableIdentifier identifier = getAbsoluteTableIdentifier(job.getConfiguration());
+    CarbonTable carbonTable = getOrCreateCarbonTable(job.getConfiguration());
+    if (null == carbonTable) {
+      throw new IOException("Missing/Corrupt schema file for table.");
+    }
+    boolean isAggregateTable =
+        carbonTable.getTableInfo().getDataMapSchemaList() != null && !carbonTable.getTableInfo()
+            .getDataMapSchemaList().isEmpty();
+    CarbonSessionInfo carbonSessionInfo = ThreadLocalSessionInfo.getCarbonSessionInfo();
+    String aggregateTableSegments = "";
+    if (carbonSessionInfo != null) {
+      aggregateTableSegments = carbonSessionInfo.getSessionParams()
+          .getProperty(CarbonLoadOptionConstants.CARBON_AGGREGATE_SEGMENTS);
+      if (aggregateTableSegments != null) {
+        ThreadLocalSessionInfo.getCarbonSessionInfo().getSessionParams().removeProperty(CarbonLoadOptionConstants.CARBON_AGGREGATE_SEGMENTS);
+      }
+    }
     TableDataMap blockletMap =
         DataMapStoreManager.getInstance().getDataMap(identifier, BlockletDataMap.NAME,
             BlockletDataMapFactory.class.getName());
     List<String> invalidSegments = new ArrayList<>();
     List<UpdateVO> invalidTimestampsList = new ArrayList<>();
-    List<String> validSegments = Arrays.asList(getSegmentsToAccess(job));
+    List<String> validSegments;
+    if (isAggregateTable && aggregateTableSegments != null && !aggregateTableSegments.isEmpty()) {
+      validSegments = Arrays.asList(aggregateTableSegments.split(","));
+    } else {
+      validSegments = Arrays.asList(getSegmentsToAccess(job));
+    }
     // get all valid segments and set them into the configuration
     SegmentUpdateStatusManager updateStatusManager = new SegmentUpdateStatusManager(identifier);
     if (validSegments.size() == 0) {
@@ -319,12 +344,8 @@ public class CarbonTableInputFormat<T> extends FileInputFormat<Void, T> {
 
     // process and resolve the expression
     Expression filter = getFilterPredicates(job.getConfiguration());
-    CarbonTable carbonTable = getOrCreateCarbonTable(job.getConfiguration());
     TableProvider tableProvider = new SingleTableProvider(carbonTable);
     // this will be null in case of corrupt schema file.
-    if (null == carbonTable) {
-      throw new IOException("Missing/Corrupt schema file for table.");
-    }
     PartitionInfo partitionInfo = carbonTable.getPartitionInfo(carbonTable.getFactTableName());
     CarbonInputFormatUtil.processFilterExpression(filter, carbonTable);
 

@@ -438,8 +438,10 @@ class NewDataFrameLoaderRDD[K, V](
         loader.initialize()
         val executor = new DataLoadExecutor
         // in case of success, failure or cancelation clear memory and stop execution
-        context.addTaskCompletionListener { context => executor.close()
-          CommonUtil.clearUnsafeMemory(ThreadLocalTaskInfo.getCarbonTaskInfo.getTaskId)}
+        context.addTaskCompletionListener { _ =>
+          executor.close()
+          CommonUtil.clearUnsafeMemory(ThreadLocalTaskInfo.getCarbonTaskInfo.getTaskId)
+        }
         executor.execute(model, loader.storeLocation, recordReaders.toArray)
       } catch {
         case e: NoRetryException =>

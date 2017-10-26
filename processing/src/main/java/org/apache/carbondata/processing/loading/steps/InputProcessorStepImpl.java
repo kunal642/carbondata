@@ -71,15 +71,19 @@ public class InputProcessorStepImpl extends AbstractDataLoadProcessorStep {
   }
 
   @Override public Iterator<CarbonRowBatch>[] execute() {
-    int batchSize = CarbonProperties.getInstance().getBatchSize();
-    List<CarbonIterator<Object[]>>[] readerIterators = partitionInputReaderIterators();
-    Iterator<CarbonRowBatch>[] outIterators = new Iterator[readerIterators.length];
-    for (int i = 0; i < outIterators.length; i++) {
-      outIterators[i] =
-          new InputProcessorIterator(readerIterators[i], rowParser, batchSize,
-              configuration.isPreFetch(), executorService, rowCounter);
+    try {
+      int batchSize = CarbonProperties.getInstance().getBatchSize();
+      List<CarbonIterator<Object[]>>[] readerIterators = partitionInputReaderIterators();
+      Iterator<CarbonRowBatch>[] outIterators = new Iterator[readerIterators.length];
+      for (int i = 0; i < outIterators.length; i++) {
+        outIterators[i] =
+            new InputProcessorIterator(readerIterators[i], rowParser, batchSize, configuration.isPreFetch(), executorService, rowCounter);
+      }
+      return outIterators;
+    } catch(Exception e) {
+      e.printStackTrace();
     }
-    return outIterators;
+    return null;
   }
 
   /**

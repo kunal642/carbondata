@@ -64,8 +64,6 @@ case class CarbonDropTableCommand(
       }
       LOGGER.audit(s"Deleting table [$tableName] under database [$dbName]")
 
-      // Drop table if it does not have any parent identifier. If it has a parent then is is a
-      // child table and would be deleted in the pre event.
       CarbonEnv.getInstance(sparkSession).carbonMetastore
         .dropTable(tableIdentifier.getTablePath, identifier)(sparkSession)
 

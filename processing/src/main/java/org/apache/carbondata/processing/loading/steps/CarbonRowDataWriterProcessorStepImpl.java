@@ -142,27 +142,30 @@ public class CarbonRowDataWriterProcessorStepImpl extends AbstractDataLoadProces
       }
       throw new CarbonDataLoadingException("There is an unexpected error: " + e.getMessage(), e);
     }
-    return null;
+    return iterators;
   }
 
   private void doExecute(Iterator<CarbonRowBatch> iterator, int partitionId, int iteratorIndex) {
-    String[] storeLocation = getStoreLocation(tableIdentifier, String.valueOf(partitionId));
-    CarbonFactDataHandlerModel model = CarbonFactDataHandlerModel
-        .createCarbonFactDataHandlerModel(configuration, storeLocation, partitionId,
-            iteratorIndex);
-    CarbonFactHandler dataHandler = null;
-    boolean rowsNotExist = true;
-    while (iterator.hasNext()) {
-      if (rowsNotExist) {
-        rowsNotExist = false;
-        dataHandler = CarbonFactHandlerFactory
-            .createCarbonFactHandler(model, CarbonFactHandlerFactory.FactHandlerType.COLUMNAR);
-        dataHandler.initialise();
+    try {
+      String[] storeLocation = getStoreLocation(tableIdentifier, String.valueOf(partitionId));
+      CarbonFactDataHandlerModel model = CarbonFactDataHandlerModel
+          .createCarbonFactDataHandlerModel(configuration, storeLocation, partitionId, iteratorIndex);
+      CarbonFactHandler dataHandler = null;
+      boolean rowsNotExist = true;
+      while (iterator.hasNext()) {
+        if (rowsNotExist) {
+          rowsNotExist = false;
+          dataHandler = CarbonFactHandlerFactory
+              .createCarbonFactHandler(model, CarbonFactHandlerFactory.FactHandlerType.COLUMNAR);
+          dataHandler.initialise();
+        }
+        processBatch(iterator.next(), dataHandler, iteratorIndex);
       }
-      processBatch(iterator.next(), dataHandler, iteratorIndex);
-    }
-    if (!rowsNotExist) {
-      finish(dataHandler, iteratorIndex);
+      if (!rowsNotExist) {
+        finish(dataHandler, iteratorIndex);
+      }
+    }catch(Exception ex) {
+      System.out.println(ex);
     }
   }
 

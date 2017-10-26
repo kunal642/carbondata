@@ -14,7 +14,6 @@ class TestPreAggCreateCommand extends QueryTest with BeforeAndAfterAll {
     sql("create table preaggMain2 (a string, b string, c string) stored by 'carbondata'")
   }
 
-
   test("test pre agg create table One") {
     sql("create table preagg1 stored BY 'carbondata' tblproperties('parent'='PreAggMain') as select a,sum(b) from PreAggMain group by a")
     checkExistence(sql("DESCRIBE FORMATTED preagg1"), true, "preaggmain_a")

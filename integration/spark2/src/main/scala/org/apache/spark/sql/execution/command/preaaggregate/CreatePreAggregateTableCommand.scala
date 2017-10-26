@@ -34,10 +34,6 @@ import org.apache.carbondata.core.util.CarbonUtil
  * 1. failed to create pre aggregate table.
  * 2. failed to update main table
  *
- * @param cm
- * @param dataFrame
- * @param createDSTable
- * @param queryString
  */
 case class CreatePreAggregateTableCommand(
     cm: TableModel,
@@ -67,7 +63,7 @@ case class CreatePreAggregateTableCommand(
     // getting the db name of parent table
     val parentDbName = parentTable.getDatabaseName
     // updating the relation identifier, this will be stored in child table
-    // which can be used during dropping of pre-aggreate table as parent table will
+    // which can be used during dropping of pre-aggregate table as parent table will
     // also get updated
     cm.parentTable = Some(parentTable)
     cm.dataMapRelation = Some(fieldRelationMap)
@@ -113,8 +109,9 @@ case class CreatePreAggregateTableCommand(
           // child schema object which will be updated on parent table about the
           val childSchema = tableInfo.getFactTable
             .buildChildSchema("", tableInfo.getDatabaseName, queryString, "AGGREGATION")
-          // upadting the parent table about child table
+          // updating the parent table about child table
           PreAggregateUtil.updateMainTable(parentDbName, parentTableName, childSchema, sparkSession)
+          sparkSession.sql(s"insert into $dbName.$tbName $queryString")
         } catch {
           case e: Exception =>
             val identifier: TableIdentifier = TableIdentifier(tbName, Some(dbName))

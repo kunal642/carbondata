@@ -100,7 +100,7 @@ public class DataMapSchema implements Serializable, Writable {
     this.className = in.readUTF();
     boolean isRelationIdnentifierExists = in.readBoolean();
     if (isRelationIdnentifierExists) {
-      this.relationIdentifier = new RelationIdentifier(null, null, null);
+      this.relationIdentifier = new RelationIdentifier();
       this.relationIdentifier.readFields(in);
     }
     boolean isChildSchemaExists = in.readBoolean();

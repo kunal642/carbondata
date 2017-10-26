@@ -72,6 +72,7 @@ object Spark2TestQueryExecutor {
     .config("carbon.sessionstate.classname",
       "org.apache.spark.sql.si.hive.CarbonInternalSessionState")
     .getOrCreateCarbonSession(null, TestQueryExecutor.metastoredb)
+  spark.sparkContext.setLogLevel("INFO")
   if (warehouse.startsWith("hdfs://")) {
     System.setProperty(CarbonCommonConstants.HDFS_TEMP_LOCATION, warehouse)
     CarbonProperties.getInstance().addProperty(CarbonCommonConstants.LOCK_TYPE,

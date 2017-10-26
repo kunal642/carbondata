@@ -749,10 +749,14 @@ object CommonUtil {
    * if present
    */
   def clearUnsafeMemory(taskId: Long) {
-    UnsafeMemoryManager.
-      INSTANCE.freeMemoryAll(taskId)
-    UnsafeSortMemoryManager.
-      INSTANCE.freeMemoryAll(taskId)
+    try {
+      UnsafeMemoryManager.
+        INSTANCE.freeMemoryAll(taskId)
+      UnsafeSortMemoryManager.
+        INSTANCE.freeMemoryAll(taskId)
+    } catch {
+      case ex: Exception => println("============ + " + ex)
+    }
   }
 
   /**

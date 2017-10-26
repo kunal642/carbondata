@@ -237,7 +237,6 @@ public class TableSchema implements Serializable, Writable {
       schema.readFields(in);
       this.listOfColumns.add(schema);
     }
-
     boolean partitionExists = in.readBoolean();
     if (partitionExists) {
       this.partitionInfo = new PartitionInfo();
