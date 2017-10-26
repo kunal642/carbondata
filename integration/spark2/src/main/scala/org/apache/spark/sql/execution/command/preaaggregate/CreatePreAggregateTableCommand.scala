@@ -19,6 +19,7 @@ package org.apache.spark.sql.execution.command.preaaggregate
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.TableIdentifier
 import org.apache.spark.sql.execution.command._
+import org.apache.spark.sql.execution.command.management.LoadTableByInsertCommand
 
 import org.apache.carbondata.common.logging.LogServiceFactory
 import org.apache.carbondata.core.constants.CarbonCommonConstants
@@ -111,7 +112,7 @@ case class CreatePreAggregateTableCommand(
             .buildChildSchema("", tableInfo.getDatabaseName, queryString, "AGGREGATION")
           // updating the parent table about child table
           PreAggregateUtil.updateMainTable(parentDbName, parentTableName, childSchema, sparkSession)
-          sparkSession.sql(s"insert into $dbName.$tbName $queryString")
+//          sparkSession.sql(s"insert into $dbName.$tbName $queryString")
         } catch {
           case e: Exception =>
             val identifier: TableIdentifier = TableIdentifier(tbName, Some(dbName))

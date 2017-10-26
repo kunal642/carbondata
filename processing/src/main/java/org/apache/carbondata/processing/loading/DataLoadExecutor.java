@@ -101,7 +101,6 @@ public class DataLoadExecutor {
    */
   public void close() {
     if (!isClosed && loadProcessorStep != null) {
-      System.out.println(loadProcessorStep);
       loadProcessorStep.close();
     }
     isClosed = true;

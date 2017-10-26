@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.carbondata.integration.spark.testsuite.$parentTableName_preaggregate
+package org.apache.carbondata.integration.spark.testsuite.preaggregate
 
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.test.util.QueryTest
@@ -96,6 +96,79 @@ class TestPreAggregateLoad extends QueryTest with BeforeAndAfterAll {
     sql("drop table if exists maintable")
   }
 
+  test("test load into main table with pre-aggregate table with single_pass") {
+    sql("drop table if exists maintable")
+    sql(
+      """
+        | CREATE TABLE maintable(id int, name string, city string, age int)
+        | STORED BY 'org.apache.carbondata.format' TBLPROPERTIES('dictionary_include'='id')
+      """.stripMargin)
+    createAllAggregateTables("maintable")
+    sql(s"LOAD DATA LOCAL INPATH '$testData' into table maintable options('single_pass'='true')")
+    checkAnswer(sql(s"select * from maintable_preagg_sum"),
+      Seq(Row(1, 31), Row(2, 27), Row(3, 70), Row(4, 55)))
+    checkAnswer(sql(s"select * from maintable_preagg_avg"),
+      Seq(Row(1, 31, 1), Row(2, 27, 1), Row(3, 70, 2), Row(4, 55,2)))
+    checkAnswer(sql(s"select * from maintable_preagg_count"),
+      Seq(Row(1, 1), Row(2, 1), Row(3, 2), Row(4, 2)))
+    checkAnswer(sql(s"select * from maintable_preagg_min"),
+      Seq(Row(1, 31), Row(2, 27), Row(3, 35), Row(4, 26)))
+    checkAnswer(sql(s"select * from maintable_preagg_max"),
+      Seq(Row(1, 31), Row(2, 27), Row(3, 35), Row(4, 29)))
+    sql("drop table if exists maintable")
+  }
 
+  test("test load into main table with incremental load") {
+    sql("drop table if exists maintable")
+    sql(
+      """
+        | CREATE TABLE maintable(id int, name string, city string, age int)
+        | STORED BY 'org.apache.carbondata.format' TBLPROPERTIES('dictionary_include'='id')
+      """.stripMargin)
+    createAllAggregateTables("maintable")
+    sql(s"LOAD DATA LOCAL INPATH '$testData' into table maintable")
+    sql(s"select * from maintable_preagg_sum").show
+    sql(s"LOAD DATA LOCAL INPATH '$testData' into table maintable")
+    sql(s"select * from maintable_preagg_sum").show
+    checkAnswer(sql(s"select * from maintable_preagg_sum"),
+      Seq(Row(1, 31),
+        Row(2, 27),
+        Row(3, 70),
+        Row(4, 55),
+        Row(1, 31),
+        Row(2, 27),
+        Row(3, 70),
+        Row(4, 55)))
+    checkAnswer(sql(s"select * from maintable_preagg_avg"),
+      Seq(Row(1, 31, 1),
+        Row(2, 27, 1),
+        Row(3, 70, 2),
+        Row(4, 55, 2),
+        Row(1, 31, 1),
+        Row(2, 27, 1),
+        Row(3, 70, 2),
+        Row(4, 55, 2)))
+    checkAnswer(sql(s"select * from maintable_preagg_count"),
+      Seq(Row(1, 1), Row(2, 1), Row(3, 2), Row(4, 2), Row(1, 1), Row(2, 1), Row(3, 2), Row(4, 2)))
+    checkAnswer(sql(s"select * from maintable_preagg_min"),
+      Seq(Row(1, 31),
+        Row(2, 27),
+        Row(3, 35),
+        Row(4, 26),
+        Row(1, 31),
+        Row(2, 27),
+        Row(3, 35),
+        Row(4, 26)))
+    checkAnswer(sql(s"select * from maintable_preagg_max"),
+      Seq(Row(1, 31),
+        Row(2, 27),
+        Row(3, 35),
+        Row(4, 29),
+        Row(1, 31),
+        Row(2, 27),
+        Row(3, 35),
+        Row(4, 29)))
+    sql("drop table if exists maintable")
+  }
 
 }

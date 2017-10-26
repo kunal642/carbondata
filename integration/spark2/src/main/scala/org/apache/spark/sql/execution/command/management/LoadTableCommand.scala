@@ -33,8 +33,10 @@ import org.apache.carbondata.core.constants.{CarbonCommonConstants, CarbonLoadOp
 import org.apache.carbondata.core.datastore.impl.FileFactory
 import org.apache.carbondata.core.dictionary.server.DictionaryServer
 import org.apache.carbondata.core.metadata.encoder.Encoding
+import org.apache.carbondata.core.metadata.schema.table.DataMapSchema
 import org.apache.carbondata.core.metadata.schema.table.column.CarbonDimension
 import org.apache.carbondata.core.mutate.{CarbonUpdateUtil, TupleIdEnum}
+import org.apache.carbondata.core.util.ThreadLocalSessionInfo
 import org.apache.carbondata.core.util.path.CarbonStorePath
 import org.apache.carbondata.core.util.{CarbonProperties, CarbonUtil}
 import org.apache.carbondata.events.{ListenerBus, LoadTablePostExecutionEvent}
@@ -451,10 +453,6 @@ case class LoadTableCommand(
             isOverwriteTable,
             loadDataFrame,
             updateModel)
-          val loadAggregationEvent = LoadTablePostExecutionEvent(sparkSession,
-            table.getCarbonTableIdentifier,
-            carbonLoadModel)
-          ListenerBus.getInstance().fireEvent(loadAggregationEvent)
         }
       } catch {
         case CausedBy(ex: NoRetryException) =>

@@ -20,16 +20,14 @@ package org.apache.spark.sql.hive
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.CarbonTableIdentifierImplicit
 import org.apache.spark.sql.catalyst.analysis.{UnresolvedAlias, UnresolvedAttribute, UnresolvedFunction, UnresolvedRelation, UnresolvedStar}
-import org.apache.spark.sql.catalyst.expressions.aggregate.{DeclarativeAggregate, _}
 import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, AttributeReference, Cast, ExprId, NamedExpression}
+import org.apache.spark.sql.catalyst.expressions.aggregate.{DeclarativeAggregate, _}
 import org.apache.spark.sql.catalyst.plans.Inner
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.catalyst.rules._
 import org.apache.spark.sql.execution.SparkSqlParser
 import org.apache.spark.sql.execution.command.mutation.ProjectForDeleteCommand
-import org.apache.spark.sql.execution.command.preaaggregate.PreAggregateUtil.getField
 import org.apache.spark.sql.execution.datasources.LogicalRelation
-import org.apache.spark.sql.types.DataType
 
 import org.apache.carbondata.core.constants.CarbonCommonConstants
 

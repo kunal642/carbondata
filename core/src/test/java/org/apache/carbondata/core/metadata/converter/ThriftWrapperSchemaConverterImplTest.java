@@ -91,126 +91,126 @@ public class ThriftWrapperSchemaConverterImplTest {
     schemaEvol = new org.apache.carbondata.format.SchemaEvolution(thriftSchemaEvolutionEntries);
 
     new MockUp<SchemaEvolution>() {
-      @Mock public List<SchemaEvolutionEntry> getSchemaEvolutionEntryList() {
+      @Mock @SuppressWarnings("unused") public List<SchemaEvolutionEntry> getSchemaEvolutionEntryList() {
         return schemaEvolutionEntries;
       }
     };
 
     new MockUp<org.apache.carbondata.format.SchemaEvolutionEntry>() {
-      @Mock public org.apache.carbondata.format.SchemaEvolutionEntry setAdded(
+      @Mock @SuppressWarnings("unused")  public org.apache.carbondata.format.SchemaEvolutionEntry setAdded(
           List<org.apache.carbondata.format.ColumnSchema> added) {
         return schemaEvolEntry;
       }
 
-      @Mock public org.apache.carbondata.format.SchemaEvolutionEntry setRemoved(
+      @Mock @SuppressWarnings("unused") public org.apache.carbondata.format.SchemaEvolutionEntry setRemoved(
           List<org.apache.carbondata.format.ColumnSchema> removed) {
         return schemaEvolEntry;
       }
 
-      @Mock public long getTime_stamp() {
+      @Mock @SuppressWarnings("unused") public long getTime_stamp() {
         return 1112745600000L;
       }
 
-      @Mock public List<org.apache.carbondata.format.ColumnSchema> getAdded() {
+      @Mock @SuppressWarnings("unused") public List<org.apache.carbondata.format.ColumnSchema> getAdded() {
         return thriftColumnSchemas;
       }
 
-      @Mock public List<org.apache.carbondata.format.ColumnSchema> getRemoved() {
+      @Mock @SuppressWarnings("unused") public List<org.apache.carbondata.format.ColumnSchema> getRemoved() {
         return thriftColumnSchemas;
       }
 
     };
 
     new MockUp<org.apache.carbondata.format.ColumnSchema>() {
-      @Mock
+      @Mock @SuppressWarnings("unused")
       public org.apache.carbondata.format.ColumnSchema setColumn_group_id(int column_group_id) {
         return thriftColumnSchema;
       }
 
-      @Mock public org.apache.carbondata.format.ColumnSchema setScale(int scale) {
+      @Mock @SuppressWarnings("unused") public org.apache.carbondata.format.ColumnSchema setScale(int scale) {
         return thriftColumnSchema;
       }
 
-      @Mock public org.apache.carbondata.format.ColumnSchema setPrecision(int precision) {
+      @Mock @SuppressWarnings("unused") public org.apache.carbondata.format.ColumnSchema setPrecision(int precision) {
         return thriftColumnSchema;
       }
 
-      @Mock public org.apache.carbondata.format.ColumnSchema setNum_child(int num_child) {
+      @Mock @SuppressWarnings("unused") public org.apache.carbondata.format.ColumnSchema setNum_child(int num_child) {
         return thriftColumnSchema;
       }
 
-      @Mock
+      @Mock @SuppressWarnings("unused")
       public org.apache.carbondata.format.ColumnSchema setDefault_value(byte[] default_value) {
         return thriftColumnSchema;
       }
 
-      @Mock public org.apache.carbondata.format.ColumnSchema setColumnProperties(
+      @Mock @SuppressWarnings("unused") public org.apache.carbondata.format.ColumnSchema setColumnProperties(
           Map<String, String> columnProperties) {
         return thriftColumnSchema;
       }
 
-      @Mock public org.apache.carbondata.format.ColumnSchema setInvisible(boolean invisible) {
+      @Mock @SuppressWarnings("unused") public org.apache.carbondata.format.ColumnSchema setInvisible(boolean invisible) {
         return thriftColumnSchema;
       }
 
-      @Mock public org.apache.carbondata.format.ColumnSchema setColumnReferenceId(
+      @Mock @SuppressWarnings("unused") public org.apache.carbondata.format.ColumnSchema setColumnReferenceId(
           String columnReferenceId) {
         return thriftColumnSchema;
       }
 
-      @Mock public String getColumn_id() {
+      @Mock @SuppressWarnings("unused") public String getColumn_id() {
         return "1";
       }
 
-      @Mock public String getColumn_name() {
+      @Mock @SuppressWarnings("unused") public String getColumn_name() {
         return "columnName";
       }
 
-      @Mock public boolean isColumnar() {
+      @Mock @SuppressWarnings("unused") public boolean isColumnar() {
         return true;
       }
 
-      @Mock public boolean isDimension() {
+      @Mock @SuppressWarnings("unused") public boolean isDimension() {
         return true;
       }
 
-      @Mock public List<org.apache.carbondata.format.Encoding> getEncoders() {
+      @Mock @SuppressWarnings("unused") public List<org.apache.carbondata.format.Encoding> getEncoders() {
         return encoders;
       }
 
-      @Mock public int getNum_child() {
+      @Mock @SuppressWarnings("unused") public int getNum_child() {
         return 1;
       }
 
-      @Mock public int getPrecision() {
+      @Mock @SuppressWarnings("unused") public int getPrecision() {
         return 1;
       }
 
-      @Mock public int getColumn_group_id() {
+      @Mock @SuppressWarnings("unused") public int getColumn_group_id() {
         return 1;
       }
 
-      @Mock public int getScale() {
+      @Mock @SuppressWarnings("unused") public int getScale() {
         return 1;
       }
 
-      @Mock public byte[] getDefault_value() {
+      @Mock @SuppressWarnings("unused") public byte[] getDefault_value() {
         return new byte[] { 1, 2 };
       }
 
-      @Mock public String getAggregate_function() {
+      @Mock @SuppressWarnings("unused") public String getAggregate_function() {
         return "";
       }
 
-      @Mock public Map<String, String> getColumnProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getColumnProperties() {
         return columnPropertyMap;
       }
 
-      @Mock public boolean isInvisible() {
+      @Mock @SuppressWarnings("unused") public boolean isInvisible() {
         return true;
       }
 
-      @Mock public String getColumnReferenceId() {
+      @Mock @SuppressWarnings("unused") public String getColumnReferenceId() {
         return "1";
       }
 
@@ -220,29 +220,29 @@ public class ThriftWrapperSchemaConverterImplTest {
     tabSchema = new org.apache.carbondata.format.TableSchema();
 
     new MockUp<org.apache.carbondata.format.TableSchema>() {
-      @Mock public org.apache.carbondata.format.TableSchema setTableProperties(
+      @Mock @SuppressWarnings("unused") public org.apache.carbondata.format.TableSchema setTableProperties(
           Map<String, String> tableProperties) {
         return tabSchema;
       }
 
-      @Mock public String getTable_id() {
+      @Mock @SuppressWarnings("unused") public String getTable_id() {
         return "1";
       }
 
-      @Mock public Map<String, String> getTableProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getTableProperties() {
         return mapTableProperties;
       }
 
-      @Mock public List<org.apache.carbondata.format.ColumnSchema> getTable_columns() {
+      @Mock @SuppressWarnings("unused") public List<org.apache.carbondata.format.ColumnSchema> getTable_columns() {
         return thriftColumnSchemas;
       }
 
-      @Mock public org.apache.carbondata.format.SchemaEvolution getSchema_evolution() {
+      @Mock @SuppressWarnings("unused") public org.apache.carbondata.format.SchemaEvolution getSchema_evolution() {
         return schemaEvol;
       }
     };
     new MockUp<org.apache.carbondata.format.SchemaEvolution>() {
-      @Mock
+      @Mock @SuppressWarnings("unused")
       public List<org.apache.carbondata.format.SchemaEvolutionEntry> getSchema_evolution_history() {
         return thriftSchemaEvolutionEntries;
       }
@@ -253,73 +253,73 @@ public class ThriftWrapperSchemaConverterImplTest {
     final SchemaEvolutionEntry schemaEvolutionEntry = new SchemaEvolutionEntry();
 
     new MockUp<SchemaEvolutionEntry>() {
-      @Mock public List<ColumnSchema> getAdded() {
+      @Mock @SuppressWarnings("unused") public List<ColumnSchema> getAdded() {
         return columnSchemas;
       }
 
-      @Mock public List<ColumnSchema> getRemoved() {
+      @Mock @SuppressWarnings("unused") public List<ColumnSchema> getRemoved() {
         return columnSchemas;
       }
     };
 
     new MockUp<ColumnSchema>() {
-      @Mock public List<Encoding> getEncodingList() {
+      @Mock @SuppressWarnings("unused") public List<Encoding> getEncodingList() {
         return encodings;
       }
 
-      @Mock public DataType getDataType() {
+      @Mock @SuppressWarnings("unused") public DataType getDataType() {
         return DataTypes.BOOLEAN;
       }
 
-      @Mock public String getColumnName() {
+      @Mock @SuppressWarnings("unused") public String getColumnName() {
         return "columnName";
       }
 
-      @Mock public String getColumnUniqueId() {
+      @Mock @SuppressWarnings("unused") public String getColumnUniqueId() {
         return "1";
       }
 
-      @Mock public boolean isColumnar() {
+      @Mock @SuppressWarnings("unused") public boolean isColumnar() {
         return true;
       }
 
-      @Mock public boolean isDimensionColumn() {
+      @Mock @SuppressWarnings("unused") public boolean isDimensionColumn() {
         return true;
       }
 
-      @Mock public int getColumnGroupId() {
+      @Mock @SuppressWarnings("unused") public int getColumnGroupId() {
         return 1;
       }
 
-      @Mock public int getScale() {
+      @Mock @SuppressWarnings("unused") public int getScale() {
         return 1;
       }
 
-      @Mock public int getPrecision() {
+      @Mock @SuppressWarnings("unused") public int getPrecision() {
         return 1;
       }
 
-      @Mock public int getNumberOfChild() {
+      @Mock @SuppressWarnings("unused") public int getNumberOfChild() {
         return 1;
       }
 
-      @Mock public byte[] getDefaultValue() {
+      @Mock @SuppressWarnings("unused") public byte[] getDefaultValue() {
         return new byte[] { 1, 2 };
       }
 
-      @Mock public Map<String, String> getColumnProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getColumnProperties() {
         return columnPropertyMap;
       }
 
-      @Mock public boolean isInvisible() {
+      @Mock @SuppressWarnings("unused") public boolean isInvisible() {
         return true;
       }
 
-      @Mock public String getColumnReferenceId() {
+      @Mock @SuppressWarnings("unused") public String getColumnReferenceId() {
         return "1";
       }
 
-      @Mock public int getSchemaOrdinal() {
+      @Mock @SuppressWarnings("unused") public int getSchemaOrdinal() {
         return 1;
       }
     };
@@ -333,73 +333,73 @@ public class ThriftWrapperSchemaConverterImplTest {
     SchemaEvolution schemaEvolution = new SchemaEvolution();
 
     new MockUp<SchemaEvolutionEntry>() {
-      @Mock public List<ColumnSchema> getAdded() {
+      @Mock @SuppressWarnings("unused") public List<ColumnSchema> getAdded() {
         return columnSchemas;
       }
 
-      @Mock public List<ColumnSchema> getRemoved() {
+      @Mock @SuppressWarnings("unused") public List<ColumnSchema> getRemoved() {
         return columnSchemas;
       }
     };
 
     new MockUp<ColumnSchema>() {
-      @Mock public List<Encoding> getEncodingList() {
+      @Mock @SuppressWarnings("unused") public List<Encoding> getEncodingList() {
         return encodings;
       }
 
-      @Mock public int getSchemaOrdinal() {
+      @Mock @SuppressWarnings("unused") public int getSchemaOrdinal() {
         return 1;
       }
 
-      @Mock public DataType getDataType() {
+      @Mock @SuppressWarnings("unused") public DataType getDataType() {
         return DataTypes.BOOLEAN;
       }
 
-      @Mock public String getColumnName() {
+      @Mock @SuppressWarnings("unused") public String getColumnName() {
         return "columnName";
       }
 
-      @Mock public String getColumnUniqueId() {
+      @Mock @SuppressWarnings("unused") public String getColumnUniqueId() {
         return "1";
       }
 
-      @Mock public boolean isColumnar() {
+      @Mock @SuppressWarnings("unused") public boolean isColumnar() {
         return true;
       }
 
-      @Mock public boolean isDimensionColumn() {
+      @Mock @SuppressWarnings("unused") public boolean isDimensionColumn() {
         return true;
       }
 
-      @Mock public int getColumnGroupId() {
+      @Mock @SuppressWarnings("unused") public int getColumnGroupId() {
         return 1;
       }
 
-      @Mock public int getScale() {
+      @Mock @SuppressWarnings("unused") public int getScale() {
         return 1;
       }
 
-      @Mock public int getPrecision() {
+      @Mock @SuppressWarnings("unused") public int getPrecision() {
         return 1;
       }
 
-      @Mock public int getNumberOfChild() {
+      @Mock @SuppressWarnings("unused") public int getNumberOfChild() {
         return 1;
       }
 
-      @Mock public byte[] getDefaultValue() {
+      @Mock @SuppressWarnings("unused") public byte[] getDefaultValue() {
         return new byte[] { 1, 2 };
       }
 
-      @Mock public Map<String, String> getColumnProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getColumnProperties() {
         return columnPropertyMap;
       }
 
-      @Mock public boolean isInvisible() {
+      @Mock @SuppressWarnings("unused") public boolean isInvisible() {
         return true;
       }
 
-      @Mock public String getColumnReferenceId() {
+      @Mock @SuppressWarnings("unused") public String getColumnReferenceId() {
         return "1";
       }
     };
@@ -425,67 +425,67 @@ public class ThriftWrapperSchemaConverterImplTest {
     ColumnSchema wrapperColumnSchema = new ColumnSchema();
     thriftColumnSchema.setAggregate_function("");
     new MockUp<ColumnSchema>() {
-      @Mock public List<Encoding> getEncodingList() {
+      @Mock @SuppressWarnings("unused") public List<Encoding> getEncodingList() {
         return encodings;
       }
 
-      @Mock public int getSchemaOrdinal() {
+      @Mock @SuppressWarnings("unused") public int getSchemaOrdinal() {
         return 1;
       }
 
-      @Mock public DataType getDataType() {
+      @Mock @SuppressWarnings("unused") public DataType getDataType() {
         return DataTypes.BOOLEAN;
       }
 
-      @Mock public String getColumnName() {
+      @Mock @SuppressWarnings("unused") public String getColumnName() {
         return "columnName";
       }
 
-      @Mock public String getColumnUniqueId() {
+      @Mock @SuppressWarnings("unused") public String getColumnUniqueId() {
         return "1";
       }
 
-      @Mock public boolean isColumnar() {
+      @Mock @SuppressWarnings("unused") public boolean isColumnar() {
         return true;
       }
 
-      @Mock public boolean isDimensionColumn() {
+      @Mock @SuppressWarnings("unused") public boolean isDimensionColumn() {
         return true;
       }
 
-      @Mock public int getColumnGroupId() {
+      @Mock @SuppressWarnings("unused") public int getColumnGroupId() {
         return 1;
       }
 
-      @Mock public int getScale() {
+      @Mock @SuppressWarnings("unused") public int getScale() {
         return 1;
       }
 
-      @Mock public int getPrecision() {
+      @Mock @SuppressWarnings("unused") public int getPrecision() {
         return 1;
       }
 
-      @Mock public int getNumberOfChild() {
+      @Mock @SuppressWarnings("unused") public int getNumberOfChild() {
         return 1;
       }
 
-      @Mock public byte[] getDefaultValue() {
+      @Mock @SuppressWarnings("unused") public byte[] getDefaultValue() {
         return new byte[] { 1, 2 };
       }
 
-      @Mock public Map<String, String> getColumnProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getColumnProperties() {
         return columnPropertyMap;
       }
 
-      @Mock public boolean isInvisible() {
+      @Mock @SuppressWarnings("unused") public boolean isInvisible() {
         return true;
       }
 
-      @Mock public String getColumnReferenceId() {
+      @Mock @SuppressWarnings("unused") public String getColumnReferenceId() {
         return "1";
       }
 
-      @Mock public String getAggFunction() {return "" ;}
+      @Mock @SuppressWarnings("unused") public String getAggFunction() {return "" ;}
     };
 
     org.apache.carbondata.format.ColumnSchema actualResult =
@@ -501,63 +501,63 @@ public class ThriftWrapperSchemaConverterImplTest {
     thriftColumnSchema.setSchemaOrdinal(1);
     thriftColumnSchema.setAggregate_function("");
     new MockUp<ColumnSchema>() {
-      @Mock public List<Encoding> getEncodingList() {
+      @Mock @SuppressWarnings("unused") public List<Encoding> getEncodingList() {
         return encodings;
       }
 
-      @Mock public int getSchemaOrdinal() {
+      @Mock @SuppressWarnings("unused") public int getSchemaOrdinal() {
         return 1;
       }
 
-      @Mock public DataType getDataType() {
+      @Mock @SuppressWarnings("unused") public DataType getDataType() {
         return DataTypes.STRING;
       }
 
-      @Mock public String getColumnName() {
+      @Mock @SuppressWarnings("unused") public String getColumnName() {
         return "columnName";
       }
 
-      @Mock public String getColumnUniqueId() {
+      @Mock @SuppressWarnings("unused") public String getColumnUniqueId() {
         return "1";
       }
 
-      @Mock public boolean isColumnar() {
+      @Mock @SuppressWarnings("unused") public boolean isColumnar() {
         return true;
       }
 
-      @Mock public boolean isDimensionColumn() {
+      @Mock @SuppressWarnings("unused") public boolean isDimensionColumn() {
         return true;
       }
 
-      @Mock public int getColumnGroupId() {
+      @Mock @SuppressWarnings("unused") public int getColumnGroupId() {
         return 1;
       }
 
-      @Mock public int getScale() {
+      @Mock @SuppressWarnings("unused") public int getScale() {
         return 1;
       }
 
-      @Mock public int getPrecision() {
+      @Mock @SuppressWarnings("unused") public int getPrecision() {
         return 1;
       }
 
-      @Mock public int getNumberOfChild() {
+      @Mock @SuppressWarnings("unused") public int getNumberOfChild() {
         return 1;
       }
 
-      @Mock public byte[] getDefaultValue() {
+      @Mock @SuppressWarnings("unused") public byte[] getDefaultValue() {
         return new byte[] { 1, 2 };
       }
 
-      @Mock public Map<String, String> getColumnProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getColumnProperties() {
         return columnPropertyMap;
       }
 
-      @Mock public boolean isInvisible() {
+      @Mock @SuppressWarnings("unused") public boolean isInvisible() {
         return true;
       }
 
-      @Mock public String getColumnReferenceId() {
+      @Mock @SuppressWarnings("unused") public String getColumnReferenceId() {
         return "1";
       }
     };
@@ -576,63 +576,63 @@ public class ThriftWrapperSchemaConverterImplTest {
     thriftColumnSchema.setSchemaOrdinal(1);
     thriftColumnSchema.setAggregate_function("");
     new MockUp<ColumnSchema>() {
-      @Mock public List<Encoding> getEncodingList() {
+      @Mock @SuppressWarnings("unused") public List<Encoding> getEncodingList() {
         return encodings;
       }
 
-      @Mock public int getSchemaOrdinal() {
+      @Mock @SuppressWarnings("unused") public int getSchemaOrdinal() {
         return 1;
       }
 
-      @Mock public DataType getDataType() {
+      @Mock @SuppressWarnings("unused") public DataType getDataType() {
         return DataTypes.INT;
       }
 
-      @Mock public String getColumnName() {
+      @Mock @SuppressWarnings("unused") public String getColumnName() {
         return "columnName";
       }
 
-      @Mock public String getColumnUniqueId() {
+      @Mock @SuppressWarnings("unused") public String getColumnUniqueId() {
         return "1";
       }
 
-      @Mock public boolean isColumnar() {
+      @Mock @SuppressWarnings("unused") public boolean isColumnar() {
         return true;
       }
 
-      @Mock public boolean isDimensionColumn() {
+      @Mock @SuppressWarnings("unused") public boolean isDimensionColumn() {
         return true;
       }
 
-      @Mock public int getColumnGroupId() {
+      @Mock @SuppressWarnings("unused") public int getColumnGroupId() {
         return 1;
       }
 
-      @Mock public int getScale() {
+      @Mock @SuppressWarnings("unused") public int getScale() {
         return 1;
       }
 
-      @Mock public int getPrecision() {
+      @Mock @SuppressWarnings("unused") public int getPrecision() {
         return 1;
       }
 
-      @Mock public int getNumberOfChild() {
+      @Mock @SuppressWarnings("unused") public int getNumberOfChild() {
         return 1;
       }
 
-      @Mock public byte[] getDefaultValue() {
+      @Mock @SuppressWarnings("unused") public byte[] getDefaultValue() {
         return new byte[] { 1, 2 };
       }
 
-      @Mock public Map<String, String> getColumnProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getColumnProperties() {
         return columnPropertyMap;
       }
 
-      @Mock public boolean isInvisible() {
+      @Mock @SuppressWarnings("unused") public boolean isInvisible() {
         return true;
       }
 
-      @Mock public String getColumnReferenceId() {
+      @Mock @SuppressWarnings("unused") public String getColumnReferenceId() {
         return "1";
       }
     };
@@ -650,63 +650,63 @@ public class ThriftWrapperSchemaConverterImplTest {
     thriftColumnSchema.setSchemaOrdinal(1);
     thriftColumnSchema.setAggregate_function("");
     new MockUp<ColumnSchema>() {
-      @Mock public List<Encoding> getEncodingList() {
+      @Mock @SuppressWarnings("unused") public List<Encoding> getEncodingList() {
         return encodings;
       }
 
-      @Mock public int getSchemaOrdinal() {
+      @Mock @SuppressWarnings("unused") public int getSchemaOrdinal() {
         return 1;
       }
 
-      @Mock public DataType getDataType() {
+      @Mock @SuppressWarnings("unused") public DataType getDataType() {
         return DataTypes.SHORT;
       }
 
-      @Mock public String getColumnName() {
+      @Mock @SuppressWarnings("unused") public String getColumnName() {
         return "columnName";
       }
 
-      @Mock public String getColumnUniqueId() {
+      @Mock @SuppressWarnings("unused") public String getColumnUniqueId() {
         return "1";
       }
 
-      @Mock public boolean isColumnar() {
+      @Mock @SuppressWarnings("unused") public boolean isColumnar() {
         return true;
       }
 
-      @Mock public boolean isDimensionColumn() {
+      @Mock @SuppressWarnings("unused") public boolean isDimensionColumn() {
         return true;
       }
 
-      @Mock public int getColumnGroupId() {
+      @Mock @SuppressWarnings("unused") public int getColumnGroupId() {
         return 1;
       }
 
-      @Mock public int getScale() {
+      @Mock @SuppressWarnings("unused") public int getScale() {
         return 1;
       }
 
-      @Mock public int getPrecision() {
+      @Mock @SuppressWarnings("unused") public int getPrecision() {
         return 1;
       }
 
-      @Mock public int getNumberOfChild() {
+      @Mock @SuppressWarnings("unused") public int getNumberOfChild() {
         return 1;
       }
 
-      @Mock public byte[] getDefaultValue() {
+      @Mock @SuppressWarnings("unused") public byte[] getDefaultValue() {
         return new byte[] { 1, 2 };
       }
 
-      @Mock public Map<String, String> getColumnProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getColumnProperties() {
         return columnPropertyMap;
       }
 
-      @Mock public boolean isInvisible() {
+      @Mock @SuppressWarnings("unused") public boolean isInvisible() {
         return true;
       }
 
-      @Mock public String getColumnReferenceId() {
+      @Mock @SuppressWarnings("unused") public String getColumnReferenceId() {
         return "1";
       }
     };
@@ -724,63 +724,63 @@ public class ThriftWrapperSchemaConverterImplTest {
     thriftColumnSchema.setSchemaOrdinal(1);
     thriftColumnSchema.setAggregate_function("");
     new MockUp<ColumnSchema>() {
-      @Mock public List<Encoding> getEncodingList() {
+      @Mock @SuppressWarnings("unused") public List<Encoding> getEncodingList() {
         return encodings;
       }
 
-      @Mock public int getSchemaOrdinal() {
+      @Mock @SuppressWarnings("unused") public int getSchemaOrdinal() {
         return 1;
       }
 
-      @Mock public DataType getDataType() {
+      @Mock @SuppressWarnings("unused") public DataType getDataType() {
         return DataTypes.LONG;
       }
 
-      @Mock public String getColumnName() {
+      @Mock @SuppressWarnings("unused") public String getColumnName() {
         return "columnName";
       }
 
-      @Mock public String getColumnUniqueId() {
+      @Mock @SuppressWarnings("unused") public String getColumnUniqueId() {
         return "1";
       }
 
-      @Mock public boolean isColumnar() {
+      @Mock @SuppressWarnings("unused") public boolean isColumnar() {
         return true;
       }
 
-      @Mock public boolean isDimensionColumn() {
+      @Mock @SuppressWarnings("unused") public boolean isDimensionColumn() {
         return true;
       }
 
-      @Mock public int getColumnGroupId() {
+      @Mock @SuppressWarnings("unused") public int getColumnGroupId() {
         return 1;
       }
 
-      @Mock public int getScale() {
+      @Mock @SuppressWarnings("unused") public int getScale() {
         return 1;
       }
 
-      @Mock public int getPrecision() {
+      @Mock @SuppressWarnings("unused") public int getPrecision() {
         return 1;
       }
 
-      @Mock public int getNumberOfChild() {
+      @Mock @SuppressWarnings("unused") public int getNumberOfChild() {
         return 1;
       }
 
-      @Mock public byte[] getDefaultValue() {
+      @Mock @SuppressWarnings("unused") public byte[] getDefaultValue() {
         return new byte[] { 1, 2 };
       }
 
-      @Mock public Map<String, String> getColumnProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getColumnProperties() {
         return columnPropertyMap;
       }
 
-      @Mock public boolean isInvisible() {
+      @Mock @SuppressWarnings("unused") public boolean isInvisible() {
         return true;
       }
 
-      @Mock public String getColumnReferenceId() {
+      @Mock @SuppressWarnings("unused") public String getColumnReferenceId() {
         return "1";
       }
     };
@@ -799,63 +799,63 @@ public class ThriftWrapperSchemaConverterImplTest {
     thriftColumnSchema.setAggregate_function("");
 
     new MockUp<ColumnSchema>() {
-      @Mock public List<Encoding> getEncodingList() {
+      @Mock @SuppressWarnings("unused") public List<Encoding> getEncodingList() {
         return encodings;
       }
 
-      @Mock public int getSchemaOrdinal() {
+      @Mock @SuppressWarnings("unused") public int getSchemaOrdinal() {
         return 1;
       }
 
-      @Mock public DataType getDataType() {
+      @Mock @SuppressWarnings("unused") public DataType getDataType() {
         return DataTypes.DOUBLE;
       }
 
-      @Mock public String getColumnName() {
+      @Mock @SuppressWarnings("unused") public String getColumnName() {
         return "columnName";
       }
 
-      @Mock public String getColumnUniqueId() {
+      @Mock @SuppressWarnings("unused") public String getColumnUniqueId() {
         return "1";
       }
 
-      @Mock public boolean isColumnar() {
+      @Mock @SuppressWarnings("unused") public boolean isColumnar() {
         return true;
       }
 
-      @Mock public boolean isDimensionColumn() {
+      @Mock @SuppressWarnings("unused") public boolean isDimensionColumn() {
         return true;
       }
 
-      @Mock public int getColumnGroupId() {
+      @Mock @SuppressWarnings("unused") public int getColumnGroupId() {
         return 1;
       }
 
-      @Mock public int getScale() {
+      @Mock @SuppressWarnings("unused") public int getScale() {
         return 1;
       }
 
-      @Mock public int getPrecision() {
+      @Mock @SuppressWarnings("unused") public int getPrecision() {
         return 1;
       }
 
-      @Mock public int getNumberOfChild() {
+      @Mock @SuppressWarnings("unused") public int getNumberOfChild() {
         return 1;
       }
 
-      @Mock public byte[] getDefaultValue() {
+      @Mock @SuppressWarnings("unused") public byte[] getDefaultValue() {
         return new byte[] { 1, 2 };
       }
 
-      @Mock public Map<String, String> getColumnProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getColumnProperties() {
         return columnPropertyMap;
       }
 
-      @Mock public boolean isInvisible() {
+      @Mock @SuppressWarnings("unused") public boolean isInvisible() {
         return true;
       }
 
-      @Mock public String getColumnReferenceId() {
+      @Mock @SuppressWarnings("unused") public String getColumnReferenceId() {
         return "1";
       }
     };
@@ -873,67 +873,67 @@ public class ThriftWrapperSchemaConverterImplTest {
     thriftColumnSchema.setSchemaOrdinal(1);
     thriftColumnSchema.setAggregate_function("");
     new MockUp<ColumnSchema>() {
-      @Mock public List<Encoding> getEncodingList() {
+      @Mock @SuppressWarnings("unused") public List<Encoding> getEncodingList() {
         return encodings;
       }
 
-      @Mock public int getSchemaOrdinal() {
+      @Mock @SuppressWarnings("unused") public int getSchemaOrdinal() {
         return 1;
       }
 
-      @Mock public DataType getDataType() {
+      @Mock @SuppressWarnings("unused") public DataType getDataType() {
         return DataTypes.DECIMAL;
       }
 
-      @Mock public String getColumnName() {
+      @Mock @SuppressWarnings("unused") public String getColumnName() {
         return "columnName";
       }
 
-      @Mock public String getColumnUniqueId() {
+      @Mock @SuppressWarnings("unused") public String getColumnUniqueId() {
         return "1";
       }
 
-      @Mock public boolean isColumnar() {
+      @Mock @SuppressWarnings("unused") public boolean isColumnar() {
         return true;
       }
 
-      @Mock public boolean isDimensionColumn() {
+      @Mock @SuppressWarnings("unused") public boolean isDimensionColumn() {
         return true;
       }
 
-      @Mock public int getColumnGroupId() {
+      @Mock @SuppressWarnings("unused") public int getColumnGroupId() {
         return 1;
       }
 
-      @Mock public int getScale() {
+      @Mock @SuppressWarnings("unused") public int getScale() {
         return 1;
       }
 
-      @Mock public int getPrecision() {
+      @Mock @SuppressWarnings("unused") public int getPrecision() {
         return 1;
       }
 
-      @Mock public int getNumberOfChild() {
+      @Mock @SuppressWarnings("unused") public int getNumberOfChild() {
         return 1;
       }
 
-      @Mock public byte[] getDefaultValue() {
+      @Mock @SuppressWarnings("unused") public byte[] getDefaultValue() {
         return new byte[] { 1, 2 };
       }
 
-      @Mock public Map<String, String> getColumnProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getColumnProperties() {
         return columnPropertyMap;
       }
 
-      @Mock public boolean isInvisible() {
+      @Mock @SuppressWarnings("unused") public boolean isInvisible() {
         return true;
       }
 
-      @Mock public String getColumnReferenceId() {
+      @Mock @SuppressWarnings("unused") public String getColumnReferenceId() {
         return "1";
       }
 
-      @Mock public String getAggFunction() {
+      @Mock @SuppressWarnings("unused") public String getAggFunction() {
         return "";
       }
     };
@@ -953,63 +953,63 @@ public class ThriftWrapperSchemaConverterImplTest {
     thriftColumnSchema.setAggregate_function("");
 
     new MockUp<ColumnSchema>() {
-      @Mock public List<Encoding> getEncodingList() {
+      @Mock @SuppressWarnings("unused") public List<Encoding> getEncodingList() {
         return encodings;
       }
 
-      @Mock public int getSchemaOrdinal() {
+      @Mock @SuppressWarnings("unused") public int getSchemaOrdinal() {
         return 1;
       }
 
-      @Mock public DataType getDataType() {
+      @Mock @SuppressWarnings("unused") public DataType getDataType() {
         return DataTypes.TIMESTAMP;
       }
 
-      @Mock public String getColumnName() {
+      @Mock @SuppressWarnings("unused") public String getColumnName() {
         return "columnName";
       }
 
-      @Mock public String getColumnUniqueId() {
+      @Mock @SuppressWarnings("unused") public String getColumnUniqueId() {
         return "1";
       }
 
-      @Mock public boolean isColumnar() {
+      @Mock @SuppressWarnings("unused") public boolean isColumnar() {
         return true;
       }
 
-      @Mock public boolean isDimensionColumn() {
+      @Mock @SuppressWarnings("unused") public boolean isDimensionColumn() {
         return true;
       }
 
-      @Mock public int getColumnGroupId() {
+      @Mock @SuppressWarnings("unused") public int getColumnGroupId() {
         return 1;
       }
 
-      @Mock public int getScale() {
+      @Mock @SuppressWarnings("unused") public int getScale() {
         return 1;
       }
 
-      @Mock public int getPrecision() {
+      @Mock @SuppressWarnings("unused") public int getPrecision() {
         return 1;
       }
 
-      @Mock public int getNumberOfChild() {
+      @Mock @SuppressWarnings("unused") public int getNumberOfChild() {
         return 1;
       }
 
-      @Mock public byte[] getDefaultValue() {
+      @Mock @SuppressWarnings("unused") public byte[] getDefaultValue() {
         return new byte[] { 1, 2 };
       }
 
-      @Mock public Map<String, String> getColumnProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getColumnProperties() {
         return columnPropertyMap;
       }
 
-      @Mock public boolean isInvisible() {
+      @Mock @SuppressWarnings("unused") public boolean isInvisible() {
         return true;
       }
 
-      @Mock public String getColumnReferenceId() {
+      @Mock @SuppressWarnings("unused") public String getColumnReferenceId() {
         return "1";
       }
     };
@@ -1027,63 +1027,63 @@ public class ThriftWrapperSchemaConverterImplTest {
     thriftColumnSchema.setSchemaOrdinal(1);
     thriftColumnSchema.setAggregate_function("");
     new MockUp<ColumnSchema>() {
-      @Mock public List<Encoding> getEncodingList() {
+      @Mock @SuppressWarnings("unused") public List<Encoding> getEncodingList() {
         return encodings;
       }
 
-      @Mock public int getSchemaOrdinal() {
+      @Mock @SuppressWarnings("unused") public int getSchemaOrdinal() {
         return 1;
       }
 
-      @Mock public DataType getDataType() {
+      @Mock @SuppressWarnings("unused") public DataType getDataType() {
         return DataTypes.ARRAY;
       }
 
-      @Mock public String getColumnName() {
+      @Mock @SuppressWarnings("unused") public String getColumnName() {
         return "columnName";
       }
 
-      @Mock public String getColumnUniqueId() {
+      @Mock @SuppressWarnings("unused") public String getColumnUniqueId() {
         return "1";
       }
 
-      @Mock public boolean isColumnar() {
+      @Mock @SuppressWarnings("unused") public boolean isColumnar() {
         return true;
       }
 
-      @Mock public boolean isDimensionColumn() {
+      @Mock @SuppressWarnings("unused") public boolean isDimensionColumn() {
         return true;
       }
 
-      @Mock public int getColumnGroupId() {
+      @Mock @SuppressWarnings("unused") public int getColumnGroupId() {
         return 1;
       }
 
-      @Mock public int getScale() {
+      @Mock @SuppressWarnings("unused") public int getScale() {
         return 1;
       }
 
-      @Mock public int getPrecision() {
+      @Mock @SuppressWarnings("unused") public int getPrecision() {
         return 1;
       }
 
-      @Mock public int getNumberOfChild() {
+      @Mock @SuppressWarnings("unused") public int getNumberOfChild() {
         return 1;
       }
 
-      @Mock public byte[] getDefaultValue() {
+      @Mock @SuppressWarnings("unused") public byte[] getDefaultValue() {
         return new byte[] { 1, 2 };
       }
 
-      @Mock public Map<String, String> getColumnProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getColumnProperties() {
         return columnPropertyMap;
       }
 
-      @Mock public boolean isInvisible() {
+      @Mock @SuppressWarnings("unused") public boolean isInvisible() {
         return true;
       }
 
-      @Mock public String getColumnReferenceId() {
+      @Mock @SuppressWarnings("unused") public String getColumnReferenceId() {
         return "1";
       }
     };
@@ -1101,63 +1101,63 @@ public class ThriftWrapperSchemaConverterImplTest {
     thriftColumnSchema.setSchemaOrdinal(1);
     thriftColumnSchema.setAggregate_function("");
     new MockUp<ColumnSchema>() {
-      @Mock public List<Encoding> getEncodingList() {
+      @Mock @SuppressWarnings("unused") public List<Encoding> getEncodingList() {
         return encodings;
       }
 
-      @Mock public int getSchemaOrdinal() {
+      @Mock @SuppressWarnings("unused") public int getSchemaOrdinal() {
         return 1;
       }
 
-      @Mock public DataType getDataType() {
+      @Mock @SuppressWarnings("unused") public DataType getDataType() {
         return DataTypes.STRUCT;
       }
 
-      @Mock public String getColumnName() {
+      @Mock @SuppressWarnings("unused") public String getColumnName() {
         return "columnName";
       }
 
-      @Mock public String getColumnUniqueId() {
+      @Mock @SuppressWarnings("unused") public String getColumnUniqueId() {
         return "1";
       }
 
-      @Mock public boolean isColumnar() {
+      @Mock @SuppressWarnings("unused") public boolean isColumnar() {
         return true;
       }
 
-      @Mock public boolean isDimensionColumn() {
+      @Mock @SuppressWarnings("unused") public boolean isDimensionColumn() {
         return true;
       }
 
-      @Mock public int getColumnGroupId() {
+      @Mock @SuppressWarnings("unused") public int getColumnGroupId() {
         return 1;
       }
 
-      @Mock public int getScale() {
+      @Mock @SuppressWarnings("unused") public int getScale() {
         return 1;
       }
 
-      @Mock public int getPrecision() {
+      @Mock @SuppressWarnings("unused") public int getPrecision() {
         return 1;
       }
 
-      @Mock public int getNumberOfChild() {
+      @Mock @SuppressWarnings("unused") public int getNumberOfChild() {
         return 1;
       }
 
-      @Mock public byte[] getDefaultValue() {
+      @Mock @SuppressWarnings("unused") public byte[] getDefaultValue() {
         return new byte[] { 1, 2 };
       }
 
-      @Mock public Map<String, String> getColumnProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getColumnProperties() {
         return columnPropertyMap;
       }
 
-      @Mock public boolean isInvisible() {
+      @Mock @SuppressWarnings("unused") public boolean isInvisible() {
         return true;
       }
 
-      @Mock public String getColumnReferenceId() {
+      @Mock @SuppressWarnings("unused") public String getColumnReferenceId() {
         return "1";
       }
     };
@@ -1176,63 +1176,63 @@ public class ThriftWrapperSchemaConverterImplTest {
     thriftColumnSchema.setSchemaOrdinal(1);
     thriftColumnSchema.setAggregate_function("");
     new MockUp<ColumnSchema>() {
-      @Mock public List<Encoding> getEncodingList() {
+      @Mock @SuppressWarnings("unused") public List<Encoding> getEncodingList() {
         return encodings;
       }
 
-      @Mock public int getSchemaOrdinal() {
+      @Mock @SuppressWarnings("unused") public int getSchemaOrdinal() {
         return 1;
       }
 
-      @Mock public DataType getDataType() {
+      @Mock @SuppressWarnings("unused") public DataType getDataType() {
         return null;
       }
 
-      @Mock public String getColumnName() {
+      @Mock @SuppressWarnings("unused") public String getColumnName() {
         return "columnName";
       }
 
-      @Mock public String getColumnUniqueId() {
+      @Mock @SuppressWarnings("unused") public String getColumnUniqueId() {
         return "1";
       }
 
-      @Mock public boolean isColumnar() {
+      @Mock @SuppressWarnings("unused") public boolean isColumnar() {
         return true;
       }
 
-      @Mock public boolean isDimensionColumn() {
+      @Mock @SuppressWarnings("unused") public boolean isDimensionColumn() {
         return true;
       }
 
-      @Mock public int getColumnGroupId() {
+      @Mock @SuppressWarnings("unused") public int getColumnGroupId() {
         return 1;
       }
 
-      @Mock public int getScale() {
+      @Mock @SuppressWarnings("unused") public int getScale() {
         return 1;
       }
 
-      @Mock public int getPrecision() {
+      @Mock @SuppressWarnings("unused") public int getPrecision() {
         return 1;
       }
 
-      @Mock public int getNumberOfChild() {
+      @Mock @SuppressWarnings("unused") public int getNumberOfChild() {
         return 1;
       }
 
-      @Mock public byte[] getDefaultValue() {
+      @Mock @SuppressWarnings("unused") public byte[] getDefaultValue() {
         return new byte[] { 1, 2 };
       }
 
-      @Mock public Map<String, String> getColumnProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getColumnProperties() {
         return columnPropertyMap;
       }
 
-      @Mock public boolean isInvisible() {
+      @Mock @SuppressWarnings("unused") public boolean isInvisible() {
         return true;
       }
 
-      @Mock public String getColumnReferenceId() {
+      @Mock @SuppressWarnings("unused") public String getColumnReferenceId() {
         return "1";
       }
     };
@@ -1250,63 +1250,63 @@ public class ThriftWrapperSchemaConverterImplTest {
     encoding.add(null);
 
     new MockUp<ColumnSchema>() {
-      @Mock public List<Encoding> getEncodingList() {
+      @Mock @SuppressWarnings("unused") public List<Encoding> getEncodingList() {
         return encoding;
       }
 
-      @Mock public int getSchemaOrdinal() {
+      @Mock @SuppressWarnings("unused") public int getSchemaOrdinal() {
         return 1;
       }
 
-      @Mock public DataType getDataType() {
+      @Mock @SuppressWarnings("unused") public DataType getDataType() {
         return DataTypes.BOOLEAN;
       }
 
-      @Mock public String getColumnName() {
+      @Mock @SuppressWarnings("unused") public String getColumnName() {
         return "columnName";
       }
 
-      @Mock public String getColumnUniqueId() {
+      @Mock @SuppressWarnings("unused") public String getColumnUniqueId() {
         return "1";
       }
 
-      @Mock public boolean isColumnar() {
+      @Mock @SuppressWarnings("unused") public boolean isColumnar() {
         return true;
       }
 
-      @Mock public boolean isDimensionColumn() {
+      @Mock @SuppressWarnings("unused") public boolean isDimensionColumn() {
         return true;
       }
 
-      @Mock public int getColumnGroupId() {
+      @Mock @SuppressWarnings("unused") public int getColumnGroupId() {
         return 1;
       }
 
-      @Mock public int getScale() {
+      @Mock @SuppressWarnings("unused") public int getScale() {
         return 1;
       }
 
-      @Mock public int getPrecision() {
+      @Mock @SuppressWarnings("unused") public int getPrecision() {
         return 1;
       }
 
-      @Mock public int getNumberOfChild() {
+      @Mock @SuppressWarnings("unused") public int getNumberOfChild() {
         return 1;
       }
 
-      @Mock public byte[] getDefaultValue() {
+      @Mock @SuppressWarnings("unused") public byte[] getDefaultValue() {
         return new byte[] { 1, 2 };
       }
 
-      @Mock public Map<String, String> getColumnProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getColumnProperties() {
         return columnPropertyMap;
       }
 
-      @Mock public boolean isInvisible() {
+      @Mock @SuppressWarnings("unused") public boolean isInvisible() {
         return true;
       }
 
-      @Mock public String getColumnReferenceId() {
+      @Mock @SuppressWarnings("unused") public String getColumnReferenceId() {
         return "1";
       }
     };
@@ -1335,73 +1335,73 @@ public class ThriftWrapperSchemaConverterImplTest {
     TableSchema wrapperTableSchema = new TableSchema();
 
     new MockUp<ColumnSchema>() {
-      @Mock public List<Encoding> getEncodingList() {
+      @Mock @SuppressWarnings("unused") public List<Encoding> getEncodingList() {
         return encodings;
       }
 
-      @Mock public int getSchemaOrdinal() {
+      @Mock @SuppressWarnings("unused") public int getSchemaOrdinal() {
         return 1;
       }
 
-      @Mock public DataType getDataType() {
+      @Mock @SuppressWarnings("unused") public DataType getDataType() {
         return DataTypes.STRING;
       }
 
-      @Mock public String getColumnName() {
+      @Mock @SuppressWarnings("unused") public String getColumnName() {
         return "columnName";
       }
 
-      @Mock public String getColumnUniqueId() {
+      @Mock @SuppressWarnings("unused") public String getColumnUniqueId() {
         return "1";
       }
 
-      @Mock public boolean isColumnar() {
+      @Mock @SuppressWarnings("unused") public boolean isColumnar() {
         return true;
       }
 
-      @Mock public boolean isDimensionColumn() {
+      @Mock @SuppressWarnings("unused") public boolean isDimensionColumn() {
         return true;
       }
 
-      @Mock public int getColumnGroupId() {
+      @Mock @SuppressWarnings("unused") public int getColumnGroupId() {
         return 1;
       }
 
-      @Mock public int getScale() {
+      @Mock @SuppressWarnings("unused") public int getScale() {
         return 1;
       }
 
-      @Mock public int getPrecision() {
+      @Mock @SuppressWarnings("unused") public int getPrecision() {
         return 1;
       }
 
-      @Mock public int getNumberOfChild() {
+      @Mock @SuppressWarnings("unused") public int getNumberOfChild() {
         return 1;
       }
 
-      @Mock public byte[] getDefaultValue() {
+      @Mock @SuppressWarnings("unused") public byte[] getDefaultValue() {
         return new byte[] { 1, 2 };
       }
 
-      @Mock public Map<String, String> getColumnProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getColumnProperties() {
         return columnPropertyMap;
       }
 
-      @Mock public boolean isInvisible() {
+      @Mock @SuppressWarnings("unused") public boolean isInvisible() {
         return true;
       }
 
-      @Mock public String getColumnReferenceId() {
+      @Mock @SuppressWarnings("unused") public String getColumnReferenceId() {
         return "1";
       }
     };
 
     new MockUp<SchemaEvolutionEntry>() {
-      @Mock public List<ColumnSchema> getAdded() {
+      @Mock @SuppressWarnings("unused") public List<ColumnSchema> getAdded() {
         return columnSchemas;
       }
 
-      @Mock public List<ColumnSchema> getRemoved() {
+      @Mock @SuppressWarnings("unused") public List<ColumnSchema> getRemoved() {
         return columnSchemas;
       }
     };
@@ -1410,19 +1410,19 @@ public class ThriftWrapperSchemaConverterImplTest {
     final Map mapTableProperties = new HashMap<String, String>();
 
     new MockUp<TableSchema>() {
-      @Mock public List<ColumnSchema> getListOfColumns() {
+      @Mock @SuppressWarnings("unused") public List<ColumnSchema> getListOfColumns() {
         return columnSchemas;
       }
 
-      @Mock public SchemaEvolution getSchemaEvalution() {
+      @Mock @SuppressWarnings("unused") public SchemaEvolution getSchemaEvalution() {
         return schemaEvolution;
       }
 
-      @Mock public String getTableId() {
+      @Mock @SuppressWarnings("unused") public String getTableId() {
         return "tableId";
       }
 
-      @Mock public Map<String, String> getTableProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getTableProperties() {
         return mapTableProperties;
       }
 
@@ -1443,102 +1443,102 @@ public class ThriftWrapperSchemaConverterImplTest {
     final List<TableSchema> tableSchemas = new ArrayList<>();
     tableSchemas.add(wrapperTableSchema);
     new MockUp<SchemaEvolutionEntry>() {
-      @Mock public List<ColumnSchema> getAdded() {
+      @Mock @SuppressWarnings("unused") public List<ColumnSchema> getAdded() {
         return columnSchemas;
       }
 
-      @Mock public List<ColumnSchema> getRemoved() {
+      @Mock @SuppressWarnings("unused") public List<ColumnSchema> getRemoved() {
         return columnSchemas;
       }
     };
 
     new MockUp<ColumnSchema>() {
-      @Mock public List<Encoding> getEncodingList() {
+      @Mock @SuppressWarnings("unused") public List<Encoding> getEncodingList() {
         return encodings;
       }
 
-      @Mock public int getSchemaOrdinal() {
+      @Mock @SuppressWarnings("unused") public int getSchemaOrdinal() {
         return 1;
       }
 
-      @Mock public DataType getDataType() {
+      @Mock @SuppressWarnings("unused") public DataType getDataType() {
         return DataTypes.STRING;
       }
 
-      @Mock public String getColumnName() {
+      @Mock @SuppressWarnings("unused") public String getColumnName() {
         return "columnName";
       }
 
-      @Mock public String getColumnUniqueId() {
+      @Mock @SuppressWarnings("unused") public String getColumnUniqueId() {
         return "1";
       }
 
-      @Mock public boolean isColumnar() {
+      @Mock @SuppressWarnings("unused") public boolean isColumnar() {
         return true;
       }
 
-      @Mock public boolean isDimensionColumn() {
+      @Mock @SuppressWarnings("unused") public boolean isDimensionColumn() {
         return true;
       }
 
-      @Mock public int getColumnGroupId() {
+      @Mock @SuppressWarnings("unused") public int getColumnGroupId() {
         return 1;
       }
 
-      @Mock public int getScale() {
+      @Mock @SuppressWarnings("unused") public int getScale() {
         return 1;
       }
 
-      @Mock public int getPrecision() {
+      @Mock @SuppressWarnings("unused") public int getPrecision() {
         return 1;
       }
 
-      @Mock public int getNumberOfChild() {
+      @Mock @SuppressWarnings("unused") public int getNumberOfChild() {
         return 1;
       }
 
-      @Mock public byte[] getDefaultValue() {
+      @Mock @SuppressWarnings("unused") public byte[] getDefaultValue() {
         return new byte[] { 1, 2 };
       }
 
-      @Mock public Map<String, String> getColumnProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getColumnProperties() {
         return columnPropertyMap;
       }
 
-      @Mock public boolean isInvisible() {
+      @Mock @SuppressWarnings("unused") public boolean isInvisible() {
         return true;
       }
 
-      @Mock public String getColumnReferenceId() {
+      @Mock @SuppressWarnings("unused") public String getColumnReferenceId() {
         return "1";
       }
 
-      @Mock public String getAggFunction() { return "";}
+      @Mock @SuppressWarnings("unused") public String getAggFunction() { return "";}
     };
 
     new MockUp<TableInfo>() {
-      @Mock public TableSchema getFactTable() {
+      @Mock @SuppressWarnings("unused") public TableSchema getFactTable() {
         return wrapperTableSchema;
       }
     };
 
     new MockUp<TableSchema>() {
-      @Mock public List<ColumnSchema> getListOfColumns() {
+      @Mock @SuppressWarnings("unused") public List<ColumnSchema> getListOfColumns() {
         return columnSchemas;
       }
 
       final SchemaEvolution schemaEvolution = new SchemaEvolution();
       final Map mapTableProperties = new HashMap<String, String>();
 
-      @Mock public SchemaEvolution getSchemaEvalution() {
+      @Mock @SuppressWarnings("unused") public SchemaEvolution getSchemaEvalution() {
         return schemaEvolution;
       }
 
-      @Mock public String getTableId() {
+      @Mock @SuppressWarnings("unused") public String getTableId() {
         return "tableId";
       }
 
-      @Mock public Map<String, String> getTableProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getTableProperties() {
         return mapTableProperties;
       }
 
@@ -1589,11 +1589,11 @@ public class ThriftWrapperSchemaConverterImplTest {
   @Test public void testFromExternalToWrapperSchemaEvolution() {
 
     new MockUp<SchemaEvolutionEntry>() {
-      @Mock public List<ColumnSchema> getAdded() {
+      @Mock @SuppressWarnings("unused") public List<ColumnSchema> getAdded() {
         return columnSchemas;
       }
 
-      @Mock public List<ColumnSchema> getRemoved() {
+      @Mock @SuppressWarnings("unused") public List<ColumnSchema> getRemoved() {
         return columnSchemas;
       }
     };
@@ -1727,95 +1727,95 @@ public class ThriftWrapperSchemaConverterImplTest {
     thriftColumnSchema.setSchemaOrdinal(1);
     thriftColumnSchema.setAggregate_function("");
     new MockUp<org.apache.carbondata.format.ColumnSchema>() {
-      @Mock
+      @Mock @SuppressWarnings("unused")
       public org.apache.carbondata.format.ColumnSchema setColumn_group_id(int column_group_id) {
         return thriftColSchema;
       }
 
-      @Mock public org.apache.carbondata.format.ColumnSchema setScale(int scale) {
+      @Mock @SuppressWarnings("unused") public org.apache.carbondata.format.ColumnSchema setScale(int scale) {
         return thriftColSchema;
       }
 
-      @Mock public org.apache.carbondata.format.ColumnSchema setPrecision(int precision) {
+      @Mock @SuppressWarnings("unused") public org.apache.carbondata.format.ColumnSchema setPrecision(int precision) {
         return thriftColSchema;
       }
 
-      @Mock public org.apache.carbondata.format.ColumnSchema setNum_child(int num_child) {
+      @Mock @SuppressWarnings("unused") public org.apache.carbondata.format.ColumnSchema setNum_child(int num_child) {
         return thriftColSchema;
       }
 
-      @Mock
+      @Mock @SuppressWarnings("unused")
       public org.apache.carbondata.format.ColumnSchema setDefault_value(byte[] default_value) {
         return thriftColSchema;
       }
 
-      @Mock public org.apache.carbondata.format.ColumnSchema setColumnProperties(
+      @Mock @SuppressWarnings("unused") public org.apache.carbondata.format.ColumnSchema setColumnProperties(
           Map<String, String> columnProperties) {
         return thriftColSchema;
       }
 
-      @Mock public org.apache.carbondata.format.ColumnSchema setInvisible(boolean invisible) {
+      @Mock @SuppressWarnings("unused") public org.apache.carbondata.format.ColumnSchema setInvisible(boolean invisible) {
         return thriftColSchema;
       }
 
-      @Mock public org.apache.carbondata.format.ColumnSchema setColumnReferenceId(
+      @Mock @SuppressWarnings("unused") public org.apache.carbondata.format.ColumnSchema setColumnReferenceId(
           String columnReferenceId) {
         return thriftColSchema;
       }
 
-      @Mock public String getColumn_id() {
+      @Mock @SuppressWarnings("unused") public String getColumn_id() {
         return "1";
       }
 
-      @Mock public String getColumn_name() {
+      @Mock @SuppressWarnings("unused") public String getColumn_name() {
         return "columnName";
       }
 
-      @Mock public boolean isColumnar() {
+      @Mock @SuppressWarnings("unused") public boolean isColumnar() {
         return true;
       }
 
-      @Mock public boolean isDimension() {
+      @Mock @SuppressWarnings("unused") public boolean isDimension() {
         return true;
       }
 
-      @Mock public List<org.apache.carbondata.format.Encoding> getEncoders() {
+      @Mock @SuppressWarnings("unused") public List<org.apache.carbondata.format.Encoding> getEncoders() {
         return encoders;
       }
 
-      @Mock public int getNum_child() {
+      @Mock @SuppressWarnings("unused") public int getNum_child() {
         return 1;
       }
 
-      @Mock public int getPrecision() {
+      @Mock @SuppressWarnings("unused") public int getPrecision() {
         return 1;
       }
 
-      @Mock public int getColumn_group_id() {
+      @Mock @SuppressWarnings("unused") public int getColumn_group_id() {
         return 1;
       }
 
-      @Mock public int getScale() {
+      @Mock @SuppressWarnings("unused") public int getScale() {
         return 1;
       }
 
-      @Mock public byte[] getDefault_value() {
+      @Mock @SuppressWarnings("unused") public byte[] getDefault_value() {
         return new byte[] { 1, 2 };
       }
 
-      @Mock public String getAggregate_function() {
+      @Mock @SuppressWarnings("unused") public String getAggregate_function() {
         return "";
       }
 
-      @Mock public Map<String, String> getColumnProperties() {
+      @Mock @SuppressWarnings("unused") public Map<String, String> getColumnProperties() {
         return columnPropertyMap;
       }
 
-      @Mock public boolean isInvisible() {
+      @Mock @SuppressWarnings("unused") public boolean isInvisible() {
         return true;
       }
 
-      @Mock public String getColumnReferenceId() {
+      @Mock @SuppressWarnings("unused") public String getColumnReferenceId() {
         return "1";
       }
 
@@ -1840,11 +1840,11 @@ public class ThriftWrapperSchemaConverterImplTest {
     long time = 1112745600000L;
     tableSchemas.add(tabSchema);
     new MockUp<org.apache.carbondata.format.TableInfo>() {
-      @Mock public org.apache.carbondata.format.TableSchema getFact_table() {
+      @Mock @SuppressWarnings("unused") public org.apache.carbondata.format.TableSchema getFact_table() {
         return tabSchema;
       }
 
-      @Mock public List<org.apache.carbondata.format.TableSchema> getAggregate_table_list() {
+      @Mock @SuppressWarnings("unused") public List<org.apache.carbondata.format.TableSchema> getAggregate_table_list() {
         return tableSchemas;
       }
     };

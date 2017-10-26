@@ -159,7 +159,6 @@ public abstract class AbstractDataLoadProcessorStep {
       closed = true;
       LOGGER.info("Total rows processed in step " + this.getStepName() + ": " + rowCounter.get());
       if (child != null) {
-        System.out.println(child);
         child.close();
       }
     }

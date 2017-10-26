@@ -63,7 +63,6 @@ import org.apache.carbondata.core.util.CarbonTimeStatisticsFactory;
 import org.apache.carbondata.core.util.CarbonUtil;
 import org.apache.carbondata.core.util.DataTypeConverter;
 import org.apache.carbondata.core.util.DataTypeConverterImpl;
-import org.apache.carbondata.core.util.SessionParams;
 import org.apache.carbondata.core.util.ThreadLocalSessionInfo;
 import org.apache.carbondata.core.util.path.CarbonStorePath;
 import org.apache.carbondata.core.util.path.CarbonTablePath;
@@ -288,7 +287,8 @@ public class CarbonTableInputFormat<T> extends FileInputFormat<Void, T> {
       aggregateTableSegments = carbonSessionInfo.getSessionParams()
           .getProperty(CarbonLoadOptionConstants.CARBON_AGGREGATE_SEGMENTS);
       if (aggregateTableSegments != null) {
-        ThreadLocalSessionInfo.getCarbonSessionInfo().getSessionParams().removeProperty(CarbonLoadOptionConstants.CARBON_AGGREGATE_SEGMENTS);
+        ThreadLocalSessionInfo.getCarbonSessionInfo().getSessionParams()
+            .removeProperty(CarbonLoadOptionConstants.CARBON_AGGREGATE_SEGMENTS);
       }
     }
     TableDataMap blockletMap =
