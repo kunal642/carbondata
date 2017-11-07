@@ -31,6 +31,8 @@ import org.apache.carbondata.core.metadata.{AbsoluteTableIdentifier, CarbonTable
 import org.apache.carbondata.core.metadata.schema.table.DataMapSchema
 import org.apache.carbondata.core.util.CarbonUtil
 import org.apache.carbondata.core.util.path.CarbonStorePath
+import org.apache.carbondata.events.ListenerBus
+import org.apache.carbondata.events.DropTablePreEvent
 
 case class CarbonDropTableCommand(
     ifExistsSet: Boolean,
@@ -90,11 +92,27 @@ case class CarbonDropTableCommand(
             removeFromParent = false).run(sparkSession)
         }
       }
+
+      //fires the event before dropping main table
+//      val metastore = CarbonEnv.getInstance(sparkSession).carbonMetastore
+//      val carbonTable = metastore
+//        .lookupRelation(Some(dbName), tableName)(sparkSession).asInstanceOf[CarbonRelation]
+//        .tableMeta.carbonTable
+//      val dropTablePostEvent: DropTablePreEvent =
+//        DropTablePreEvent(
+//          carbonTable,
+//          ifExistsSet,
+//          sparkSession)
+//      ListenerBus.getInstance.fireEvent(dropTablePostEvent)
+//
+//      CarbonEnv.getInstance(sparkSession).carbonMetastore
+//        .dropTable(tableIdentifier.getTablePath, identifier)(sparkSession)
+
       LOGGER.audit(s"Deleted table [$tableName] under database [$dbName]")
     } catch {
       case ex: Exception =>
         LOGGER.error(ex, s"Dropping table $dbName.$tableName failed")
-        sys.error(s"Dropping table $dbName.$tableName failed: ${ex.getMessage}")
+        sys.error(s"Dropping table $dbName.$tableName failed: ${ ex.getMessage }")
     } finally {
       if (carbonLocks.nonEmpty) {
         val unlocked = carbonLocks.forall(_.unlock())
