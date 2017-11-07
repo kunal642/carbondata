@@ -22,8 +22,8 @@ import org.apache.spark.sql.execution.command.{Checker, DataProcessCommand, Runn
 import org.apache.spark.sql.hive.CarbonRelation
 
 import org.apache.carbondata.api.CarbonStore
-import org.apache.carbondata.events.ListenerBus
 import org.apache.carbondata.events.DeleteSegmentByDatePostEvent
+import org.apache.carbondata.events.ListenerBus
 
 case class DeleteLoadByLoadDateCommand(
     databaseNameOp: Option[String],

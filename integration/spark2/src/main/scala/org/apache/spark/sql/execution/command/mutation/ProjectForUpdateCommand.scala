@@ -69,7 +69,7 @@ private[sql] case class ProjectForUpdateCommand(
     //      asInstanceOf[CarbonRelation]
     val carbonTable = relation.tableMeta.carbonTable
 
-    //trigger event for Update table
+    // trigger event for Update table
     val updateTablePreEvent: UpdateTablePreEvent =
       UpdateTablePreEvent(carbonTable)
     ListenerBus.getInstance.fireEvent(updateTablePreEvent)

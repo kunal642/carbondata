@@ -71,5 +71,5 @@ object CarbonHiveMetadataUtil {
 }
 
 class NonIndexUDFExpression extends UDF {
-  def evaluate(input: Any) = true
+  def evaluate(input: Any): Boolean = true
 }

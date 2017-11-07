@@ -18,7 +18,6 @@
 package org.apache.spark.sql.execution.command
 
 import scala.collection.mutable.ListBuffer
-import scala.collection.JavaConverters._
 
 import org.apache.spark.sql.{CarbonEnv, GetDB, Row, SparkSession}
 import org.apache.spark.sql.catalyst.TableIdentifier
@@ -28,17 +27,14 @@ import org.apache.carbondata.common.logging.{LogService, LogServiceFactory}
 import org.apache.carbondata.core.datastore.impl.FileFactory
 import org.apache.carbondata.core.locks.{CarbonLockUtil, ICarbonLock, LockUsage}
 import org.apache.carbondata.core.metadata.{AbsoluteTableIdentifier, CarbonTableIdentifier}
-import org.apache.carbondata.core.metadata.schema.table.DataMapSchema
 import org.apache.carbondata.core.util.CarbonUtil
 import org.apache.carbondata.core.util.path.CarbonStorePath
-import org.apache.carbondata.events.ListenerBus
-import org.apache.carbondata.events.DropTablePreEvent
+import org.apache.carbondata.events.{DropTablePostEvent, ListenerBus}
 
 case class CarbonDropTableCommand(
     ifExistsSet: Boolean,
     databaseNameOp: Option[String],
-    tableName: String,
-    removeFromParent: Boolean = true)
+    tableName: String)
   extends RunnableCommand with SchemaProcessCommand with DataProcessCommand {
 
   override def run(sparkSession: SparkSession): Seq[Row] = {
@@ -59,54 +55,27 @@ case class CarbonDropTableCommand(
         dbName.toLowerCase, tableName.toLowerCase)
     catalog.checkSchemasModifiedTimeAndReloadTables(tableIdentifier.getStorePath)
     val carbonLocks: scala.collection.mutable.ListBuffer[ICarbonLock] = ListBuffer()
-    val carbonTable = try {
-        Some(CarbonEnv.getInstance(sparkSession).carbonMetastore
-          .lookupRelation(Some(dbName), tableName)(sparkSession).asInstanceOf[CarbonRelation]
-          .tableMeta.carbonTable)
-      } catch {
-        case _: Exception =>
-          LOGGER.warn(s"Lookup failed for $dbName.$tableName")
-          None
-      }
+    val carbonTable = CarbonEnv.getInstance(sparkSession).carbonMetastore
+      .lookupRelation(Some(dbName), tableName)(sparkSession).asInstanceOf[CarbonRelation]
+      .tableMeta.carbonTable
     try {
       locksToBeAcquired foreach {
         lock => carbonLocks += CarbonLockUtil.getLockObject(carbonTableIdentifier, lock)
       }
       LOGGER.audit(s"Deleting table [$tableName] under database [$dbName]")
-      if (carbonTable.isDefined &&
-          carbonTable.get.getTableInfo.getParentRelationIdentifiers != null &&
-          !carbonTable.get.getTableInfo.getParentRelationIdentifiers.isEmpty) {
-        CarbonEnv.getInstance(sparkSession).carbonMetastore
-          .dropChildTable(tableIdentifier.getTablePath, identifier, removeFromParent)(sparkSession)
-      } else {
-        CarbonEnv.getInstance(sparkSession).carbonMetastore
-          .dropTable(tableIdentifier.getTablePath, identifier)(sparkSession)
-      }
-      if (carbonTable.isDefined && carbonTable.get.getTableInfo.getDataMapSchemaList != null &&
-          !carbonTable.get.getTableInfo.getDataMapSchemaList.isEmpty) {
-        val childSchemas = carbonTable.get.getTableInfo.getDataMapSchemaList
-        for (childSchema: DataMapSchema <- childSchemas.asScala) {
-          CarbonDropTableCommand(ifExistsSet = true,
-            Some(childSchema.getRelationIdentifier.getDatabaseName),
-            childSchema.getRelationIdentifier.getTableName,
-            removeFromParent = false).run(sparkSession)
-        }
-      }
 
-      //fires the event before dropping main table
-//      val metastore = CarbonEnv.getInstance(sparkSession).carbonMetastore
-//      val carbonTable = metastore
-//        .lookupRelation(Some(dbName), tableName)(sparkSession).asInstanceOf[CarbonRelation]
-//        .tableMeta.carbonTable
-//      val dropTablePostEvent: DropTablePreEvent =
-//        DropTablePreEvent(
-//          carbonTable,
-//          ifExistsSet,
-//          sparkSession)
-//      ListenerBus.getInstance.fireEvent(dropTablePostEvent)
-//
-//      CarbonEnv.getInstance(sparkSession).carbonMetastore
-//        .dropTable(tableIdentifier.getTablePath, identifier)(sparkSession)
+      // Drop table if it does not have any parent identifier. If it has a parent then is is a
+      // child table and would be deleted in the pre event.
+      CarbonEnv.getInstance(sparkSession).carbonMetastore
+        .dropTable(tableIdentifier.getTablePath, identifier)(sparkSession)
+
+      // fires the event after dropping main table
+      val dropTablePostEvent: DropTablePostEvent =
+        DropTablePostEvent(
+          carbonTable,
+          ifExistsSet,
+          sparkSession)
+      ListenerBus.getInstance.fireEvent(dropTablePostEvent)
 
       LOGGER.audit(s"Deleted table [$tableName] under database [$dbName]")
     } catch {

@@ -24,6 +24,7 @@ import org.apache.spark.sql.execution.command.preaaggregate.PreAggregateUtil
 
 import org.apache.carbondata.core.cache.dictionary.ManageDictionaryAndBTree
 import org.apache.carbondata.core.datamap.DataMapStoreManager
+import org.apache.carbondata.core.datastore.impl.FileFactory
 import org.apache.carbondata.core.metadata.{AbsoluteTableIdentifier, CarbonMetadata, CarbonTableIdentifier}
 import org.apache.carbondata.core.metadata.converter.ThriftWrapperSchemaConverterImpl
 import org.apache.carbondata.core.metadata.schema.table.{CarbonTable, RelationIdentifier}
@@ -80,6 +81,12 @@ class CarbonHiveMetaStore extends CarbonFileMetastore {
       ManageDictionaryAndBTree.clearBTreeAndDictionaryLRUCache(carbonTable)
     }
     checkSchemasModifiedTimeAndReloadTables(identifier.getStorePath)
+    val parentRelations = carbonTable.getTableInfo.getParentRelationIdentifiers
+    if (parentRelations != null && !parentRelations.isEmpty) {
+      for (parentRelation: RelationIdentifier <- parentRelations.asScala) {
+        updateParentTableInfo(parentRelation, carbonTable)(sparkSession)
+      }
+    }
     removeTableFromMetadata(dbName, tableName)
     CarbonHiveMetadataUtil.invalidateAndDropTable(dbName, tableName, sparkSession)
     // discard cached table info in cachedDataSourceTables
@@ -108,49 +115,6 @@ class CarbonHiveMetaStore extends CarbonFileMetastore {
       carbonTable.getFactTableName)
   }
 
-  override def dropChildTable(tablePath: String,
-      tableIdentifier: TableIdentifier, removeFromParent: Boolean)
-    (sparkSession: SparkSession): Unit = {
-    val dbName = tableIdentifier.database.get
-    val tableName = tableIdentifier.table
-    val childCarbonTable = CarbonEnv.getInstance(sparkSession).carbonMetastore
-      .lookupRelation(Some(dbName), tableName)(sparkSession).asInstanceOf[CarbonRelation]
-      .tableMeta.carbonTable
-    if (null != childCarbonTable) {
-      // clear driver B-tree and dictionary cache
-      ManageDictionaryAndBTree.clearBTreeAndDictionaryLRUCache(childCarbonTable)
-    }
-    if (removeFromParent) {
-      val parentRelations = childCarbonTable.getTableInfo.getParentRelationIdentifiers
-      for (parentRelation: RelationIdentifier <- parentRelations.asScala) {
-        val parentTableName = parentRelation.getTableName
-        val parentDatabaseName = parentRelation.getDatabaseName
-        val parentCarbonTable = CarbonEnv.getInstance(sparkSession).carbonMetastore
-          .lookupRelation(Some(parentDatabaseName), parentTableName)(sparkSession)
-          .asInstanceOf[CarbonRelation]
-          .tableMeta.carbonTable
-        val childSchemas = parentCarbonTable.getTableInfo.getDataMapSchemaList
-        val childSchemaIterator = childSchemas.iterator()
-        while(childSchemaIterator.hasNext) {
-          val childSchema = childSchemaIterator.next()
-          if (childSchema.getChildSchema.equals(childCarbonTable.getTableInfo.getFactTable)) {
-            childSchemaIterator.remove()
-          }
-        }
-        val schemaConverter = new ThriftWrapperSchemaConverterImpl
-        removeTableFromMetadata(dbName, tableName)
-        PreAggregateUtil
-          .updateSchemaInfo(parentCarbonTable,
-            schemaConverter
-              .fromWrapperToExternalTableInfo(parentCarbonTable.getTableInfo,
-                parentDatabaseName,
-                parentTableName))(sparkSession)
-      }
-    }
-    CarbonHiveMetadataUtil.invalidateAndDropTable(dbName, tableName, sparkSession)
-    sparkSession.sessionState.catalog.refreshTable(tableIdentifier)
-    DataMapStoreManager.getInstance().clearDataMap(childCarbonTable.getAbsoluteTableIdentifier)
-  }
 
   /**
    * This method will overwrite the existing schema and update it with the given details

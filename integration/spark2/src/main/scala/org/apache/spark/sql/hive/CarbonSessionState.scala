@@ -27,6 +27,7 @@ import org.apache.spark.sql.catalyst.parser.ParserInterface
 import org.apache.spark.sql.catalyst.plans.logical.{Filter, LogicalPlan, SubqueryAlias}
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.SparkOptimizer
+import org.apache.spark.sql.execution.command.preaaggregate.{DropTablePostListener, DropTablePreListener}
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.execution.strategy.{CarbonLateDecodeStrategy, DDLStrategy}
 import org.apache.spark.sql.internal.SQLConf
@@ -36,6 +37,7 @@ import org.apache.spark.util.Utils
 
 import org.apache.carbondata.core.datamap.DataMapStoreManager
 import org.apache.carbondata.core.metadata.AbsoluteTableIdentifier
+import org.apache.carbondata.events.{DropTablePostEvent, DropTablePreEvent, ListenerBus}
 
 /**
  * This class will have carbon catalog and refresh the relation from cache if the carbontable in
@@ -65,8 +67,7 @@ class CarbonSessionCatalog(
     functionResourceLoader,
     functionRegistry,
     conf,
-    hadoopConf,
-    parser) {
+    hadoopConf) {
 
   lazy val carbonEnv = {
     val env = new CarbonEnv
@@ -128,6 +129,15 @@ class CarbonSessionCatalog(
   }
 }
 
+object CarbonSessionState {
+
+  def init(): Unit = {
+    ListenerBus.getInstance().addListener(DropTablePreEvent.eventType, new DropTablePreListener)
+    ListenerBus.getInstance().addListener(DropTablePostEvent.eventType, new DropTablePostListener)
+  }
+
+}
+
 /**
  * Session state implementation to override sql parser and adding strategies
  * @param sparkSession
@@ -138,6 +148,8 @@ class CarbonSessionState(sparkSession: SparkSession) extends HiveSessionState(sp
 
   experimentalMethods.extraStrategies = extraStrategies
   experimentalMethods.extraOptimizations = extraOptimizations
+
+  CarbonSessionState.init()
 
   def extraStrategies: Seq[Strategy] = {
     Seq(new CarbonLateDecodeStrategy,
@@ -220,20 +232,3 @@ class CarbonOptimizer(
     super.execute(transFormedPlan)
   }
 }
-
-object SessionStateFactory {
-
-  def getSessionState(sparkSession: SparkSession, className: String): HiveSessionState = {
-    className match {
-      case "org.apache.spark.sql.si.hive.CarbonInternalSessionState" =>
-        // use reflection to create an object for internal session state
-        val clazz = Utils.classForName(className)
-        val constructors = clazz.getConstructors()(0)
-        val sessionStateInstance = constructors.newInstance(sparkSession)
-          .asInstanceOf[HiveSessionState]
-        sessionStateInstance
-      case _ => new CarbonSessionState(sparkSession)
-    }
-  }
-}
-

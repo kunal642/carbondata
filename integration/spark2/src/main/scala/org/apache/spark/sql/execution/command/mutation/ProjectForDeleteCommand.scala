@@ -53,7 +53,7 @@ private[sql] case class ProjectForDeleteCommand(
       asInstanceOf[CarbonRelation]
     val carbonTable = relation.tableMeta.carbonTable
 
-    //trigger event for Delete from table
+    // trigger event for Delete from table
     val deleteFromTablePreEvent: DeleteFromTablePreEvent =
       DeleteFromTablePreEvent(carbonTable)
     ListenerBus.getInstance.fireEvent(deleteFromTablePreEvent)

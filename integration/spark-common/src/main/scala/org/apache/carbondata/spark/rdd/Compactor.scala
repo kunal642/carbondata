@@ -22,10 +22,9 @@ import scala.collection.JavaConverters._
 import org.apache.spark.sql.execution.command.{CarbonMergerMapping, CompactionCallableModel}
 
 import org.apache.carbondata.common.logging.LogServiceFactory
-import org.apache.carbondata.core.constants.CarbonCommonConstants
 import org.apache.carbondata.core.mutate.CarbonUpdateUtil
 import org.apache.carbondata.core.statusmanager.SegmentStatusManager
-import org.apache.carbondata.events.{AlterTableCompactionPreEvent, AlterTableDropColumnPreEvent, ListenerBus, LoadTablePostExecutionEvent}
+import org.apache.carbondata.events.{AlterTableCompactionPreEvent, ListenerBus}
 import org.apache.carbondata.processing.merger.{CarbonDataMergerUtil, CompactionType}
 import org.apache.carbondata.spark.MergeResultImpl
 
@@ -83,23 +82,23 @@ object Compactor {
     }
 
     val mergeStatus =
-    if (compactionType == CompactionType.IUD_UPDDEL_DELTA_COMPACTION) {
-      new CarbonIUDMergerRDD(
-        sc.sparkContext,
-        new MergeResultImpl(),
-        carbonLoadModel,
-        carbonMergerMapping,
-        execInstance
-      ).collect
-    } else {
-      new CarbonMergerRDD(
-        sc.sparkContext,
-        new MergeResultImpl(),
-        carbonLoadModel,
-        carbonMergerMapping,
-        execInstance
-      ).collect
-    }
+      if (compactionType == CompactionType.IUD_UPDDEL_DELTA_COMPACTION) {
+        new CarbonIUDMergerRDD(
+          sc.sparkContext,
+          new MergeResultImpl(),
+          carbonLoadModel,
+          carbonMergerMapping,
+          execInstance
+        ).collect
+      } else {
+        new CarbonMergerRDD(
+          sc.sparkContext,
+          new MergeResultImpl(),
+          carbonLoadModel,
+          carbonMergerMapping,
+          execInstance
+        ).collect
+      }
 
     if (mergeStatus.length == 0) {
       finalMergeStatus = false
@@ -109,9 +108,9 @@ object Compactor {
 
     if (finalMergeStatus) {
 
-      //trigger event for compaction
+      // trigger event for compaction
       val alterTableCompactionPreEvent: AlterTableCompactionPreEvent =
-        AlterTableCompactionPreEvent(carbonTable,carbonLoadModel,mergedLoadName,sc)
+        AlterTableCompactionPreEvent(carbonTable, carbonLoadModel, mergedLoadName, sc)
       ListenerBus.getInstance.fireEvent(alterTableCompactionPreEvent)
 
       val endTime = System.nanoTime()

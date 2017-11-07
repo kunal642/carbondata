@@ -39,7 +39,7 @@ case class CarbonDropDatabaseCommand(command: DropDatabaseCommand)
     val rows = command.run(sparkSession)
     if (command.cascade && tablesInDB != null) {
       tablesInDB.foreach { tableName =>
-        CarbonDropTableCommand(true, tableName.database, tableName.table, false).run(sparkSession)
+        CarbonDropTableCommand(true, tableName.database, tableName.table).run(sparkSession)
       }
     }
     CarbonUtil.dropDatabaseDirectory(dbName.toLowerCase,
