@@ -17,9 +17,12 @@
 
 package org.apache.carbondata.core.metadata.datatype;
 
+import java.util.Objects;
+
 public class MapType extends DataType {
 
   private DataType keyType;
+
   private DataType valueType;
 
   MapType(DataType keyType, DataType valueType) {
@@ -31,5 +34,26 @@ public class MapType extends DataType {
   @Override
   public boolean isComplexType() {
     return true;
+  }
+
+  public DataType getKeyType() {
+    return keyType;
+  }
+
+  public DataType getValueType() {
+    return valueType;
+  }
+
+  @Override public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    if (!super.equals(o)) return false;
+    MapType mapType = (MapType) o;
+    return Objects.equals(keyType, mapType.keyType) && Objects.equals(valueType, mapType.valueType);
+  }
+
+  @Override public int hashCode() {
+
+    return Objects.hash(super.hashCode(), keyType, valueType);
   }
 }

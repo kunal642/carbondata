@@ -41,7 +41,7 @@ public class DataTypeAdapter extends TypeAdapter<Object> {
   @Override public Object read(JsonReader jsonReader) throws IOException {
     JsonToken token = jsonReader.peek();
     if (token == JsonToken.STRING) {
-      return DataTypeUtil.valueOf(jsonReader.nextString());
+      return "";
     } else {
       // use original deserializer logic
       return fallBack_original.fromJson(jsonReader, DataType.class);

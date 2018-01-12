@@ -18,6 +18,7 @@
 package org.apache.carbondata.core.metadata.datatype;
 
 import java.util.List;
+import java.util.Objects;
 
 public class StructType extends DataType {
 
@@ -35,5 +36,18 @@ public class StructType extends DataType {
 
   public List<StructField> getFields() {
     return fields;
+  }
+
+  @Override public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    if (!super.equals(o)) return false;
+    StructType that = (StructType) o;
+    return Objects.equals(fields, that.fields);
+  }
+
+  @Override public int hashCode() {
+
+    return Objects.hash(super.hashCode(), fields);
   }
 }

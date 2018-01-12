@@ -1959,8 +1959,8 @@ public final class CarbonUtil {
     // Datatype GSON adapter is added to support backward compatibility for tableInfo
     // deserialization
     GsonBuilder gsonBuilder = new GsonBuilder();
-    gsonBuilder.registerTypeAdapter(DataType.class, new DataTypeAdapter());
-
+//    gsonBuilder.registerTypeAdapter(DataType.class, new DataTypeAdapter());
+    gsonBuilder.registerTypeAdapter(DataType.class, new AdapterFactory());
     Gson gson = gsonBuilder.create();
     TableInfo tableInfo = gson.fromJson(builder.toString(), TableInfo.class);
 

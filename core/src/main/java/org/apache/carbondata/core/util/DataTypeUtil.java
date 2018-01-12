@@ -22,6 +22,7 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.sql.Struct;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -35,12 +36,19 @@ import org.apache.carbondata.core.datastore.page.ColumnPage;
 import org.apache.carbondata.core.datastore.page.encoding.bool.BooleanConvert;
 import org.apache.carbondata.core.keygenerator.directdictionary.DirectDictionaryGenerator;
 import org.apache.carbondata.core.keygenerator.directdictionary.DirectDictionaryKeyGeneratorFactory;
+import org.apache.carbondata.core.metadata.datatype.ArrayType;
 import org.apache.carbondata.core.metadata.datatype.DataType;
 import org.apache.carbondata.core.metadata.datatype.DataTypes;
+import org.apache.carbondata.core.metadata.datatype.DecimalType;
+import org.apache.carbondata.core.metadata.datatype.MapType;
+import org.apache.carbondata.core.metadata.datatype.StructField;
+import org.apache.carbondata.core.metadata.datatype.StructType;
 import org.apache.carbondata.core.metadata.encoder.Encoding;
 import org.apache.carbondata.core.metadata.schema.table.column.CarbonDimension;
 import org.apache.carbondata.core.metadata.schema.table.column.CarbonMeasure;
 import org.apache.carbondata.core.metadata.schema.table.column.ColumnSchema;
+
+import org.apache.spark.sql.types.Decimal;
 
 public final class DataTypeUtil {
 
@@ -735,98 +743,72 @@ public final class DataTypeUtil {
     return converter;
   }
 
-  public static DataType valueOf(String name) {
-    if (DataTypes.STRING.getName().equalsIgnoreCase(name)) {
-      return DataTypes.STRING;
-    } else if (DataTypes.DATE.getName().equalsIgnoreCase(name)) {
-      return DataTypes.DATE;
-    } else if (DataTypes.TIMESTAMP.getName().equalsIgnoreCase(name)) {
-      return DataTypes.TIMESTAMP;
-    } else if (DataTypes.BOOLEAN.getName().equalsIgnoreCase(name)) {
-      return DataTypes.BOOLEAN;
-    } else if (DataTypes.BYTE.getName().equalsIgnoreCase(name)) {
-      return DataTypes.BYTE;
-    } else if (DataTypes.SHORT.getName().equalsIgnoreCase(name)) {
-      return DataTypes.SHORT;
-    } else if (DataTypes.SHORT_INT.getName().equalsIgnoreCase(name)) {
-      return DataTypes.SHORT_INT;
-    } else if (DataTypes.INT.getName().equalsIgnoreCase(name)) {
-      return DataTypes.INT;
-    } else if (DataTypes.LONG.getName().equalsIgnoreCase(name)) {
-      return DataTypes.LONG;
-    } else if (DataTypes.LEGACY_LONG.getName().equalsIgnoreCase(name)) {
-      return DataTypes.LEGACY_LONG;
-    } else if (DataTypes.FLOAT.getName().equalsIgnoreCase(name)) {
-      return DataTypes.FLOAT;
-    } else if (DataTypes.DOUBLE.getName().equalsIgnoreCase(name)) {
-      return DataTypes.DOUBLE;
-    } else if (DataTypes.NULL.getName().equalsIgnoreCase(name)) {
-      return DataTypes.NULL;
-    } else if (DataTypes.BYTE_ARRAY.getName().equalsIgnoreCase(name)) {
-      return DataTypes.BYTE_ARRAY;
-    } else if (DataTypes.BYTE_ARRAY.getName().equalsIgnoreCase(name)) {
-      return DataTypes.BYTE_ARRAY;
-    } else if (name.equalsIgnoreCase("decimal")) {
-      return DataTypes.createDefaultDecimalType();
-    } else if (name.equalsIgnoreCase("array")) {
-      return DataTypes.createDefaultArrayType();
-    } else if (name.equalsIgnoreCase("struct")) {
-      return DataTypes.createDefaultStructType();
-    } else if (name.equalsIgnoreCase("map")) {
-      return DataTypes.createDefaultMapType();
-    } else {
-      throw new RuntimeException("create DataType with invalid name: " + name);
-    }
-  }
-
-  /**
-   * @param dataType extracted from the json data
-   * @return returns the datatype based on the input string from json to deserialize the tableInfo
-   */
-  public static DataType valueOf(DataType dataType, int precision, int scale) {
-    if (DataTypes.STRING.getName().equalsIgnoreCase(dataType.getName())) {
-      return DataTypes.STRING;
-    } else if (DataTypes.DATE.getName().equalsIgnoreCase(dataType.getName())) {
-      return DataTypes.DATE;
-    } else if (DataTypes.TIMESTAMP.getName().equalsIgnoreCase(dataType.getName())) {
-      return DataTypes.TIMESTAMP;
-    } else if (DataTypes.BOOLEAN.getName().equalsIgnoreCase(dataType.getName())) {
-      return DataTypes.BOOLEAN;
-    } else if (DataTypes.BYTE.getName().equalsIgnoreCase(dataType.getName())) {
-      return DataTypes.BYTE;
-    } else if (DataTypes.SHORT.getName().equalsIgnoreCase(dataType.getName())) {
-      return DataTypes.SHORT;
-    } else if (DataTypes.SHORT_INT.getName().equalsIgnoreCase(dataType.getName())) {
-      return DataTypes.SHORT_INT;
-    } else if (DataTypes.INT.getName().equalsIgnoreCase(dataType.getName())) {
-      return DataTypes.INT;
-    } else if (DataTypes.LONG.getName().equalsIgnoreCase(dataType.getName())) {
-      return DataTypes.LONG;
-    } else if (DataTypes.LEGACY_LONG.getName().equalsIgnoreCase(dataType.getName())) {
-      return DataTypes.LEGACY_LONG;
-    } else if (DataTypes.FLOAT.getName().equalsIgnoreCase(dataType.getName())) {
-      return DataTypes.FLOAT;
-    } else if (DataTypes.DOUBLE.getName().equalsIgnoreCase(dataType.getName())) {
-      return DataTypes.DOUBLE;
-    } else if (DataTypes.NULL.getName().equalsIgnoreCase(dataType.getName())) {
-      return DataTypes.NULL;
-    } else if (DataTypes.BYTE_ARRAY.getName().equalsIgnoreCase(dataType.getName())) {
-      return DataTypes.BYTE_ARRAY;
-    } else if (DataTypes.BYTE_ARRAY.getName().equalsIgnoreCase(dataType.getName())) {
-      return DataTypes.BYTE_ARRAY;
-    } else if (dataType.getName().equalsIgnoreCase("decimal")) {
-      return DataTypes.createDecimalType(precision, scale);
-    } else if (dataType.getName().equalsIgnoreCase("array")) {
-      return DataTypes.createDefaultArrayType();
-    } else if (dataType.getName().equalsIgnoreCase("struct")) {
-      return DataTypes.createDefaultStructType();
-    } else if (dataType.getName().equalsIgnoreCase("map")) {
-      return DataTypes.createDefaultMapType();
-    } else {
-      throw new RuntimeException(
-          "create DataType with invalid dataType.getName(): " + dataType.getName());
-    }
-  }
+//  public static DataType valueOf(String name) {
+//    if (DataTypes.STRING.getName().equalsIgnoreCase(name)) {
+//      return DataTypes.STRING;
+//    } else if (DataTypes.DATE.getName().equalsIgnoreCase(name)) {
+//      return DataTypes.DATE;
+//    } else if (DataTypes.TIMESTAMP.getName().equalsIgnoreCase(name)) {
+//      return DataTypes.TIMESTAMP;
+//    } else if (DataTypes.BOOLEAN.getName().equalsIgnoreCase(name)) {
+//      return DataTypes.BOOLEAN;
+//    } else if (DataTypes.BYTE.getName().equalsIgnoreCase(name)) {
+//      return DataTypes.BYTE;
+//    } else if (DataTypes.SHORT.getName().equalsIgnoreCase(name)) {
+//      return DataTypes.SHORT;
+//    } else if (DataTypes.SHORT_INT.getName().equalsIgnoreCase(name)) {
+//      return DataTypes.SHORT_INT;
+//    } else if (DataTypes.INT.getName().equalsIgnoreCase(name)) {
+//      return DataTypes.INT;
+//    } else if (DataTypes.LONG.getName().equalsIgnoreCase(name)) {
+//      return DataTypes.LONG;
+//    } else if (DataTypes.LEGACY_LONG.getName().equalsIgnoreCase(name)) {
+//      return DataTypes.LEGACY_LONG;
+//    } else if (DataTypes.FLOAT.getName().equalsIgnoreCase(name)) {
+//      return DataTypes.FLOAT;
+//    } else if (DataTypes.DOUBLE.getName().equalsIgnoreCase(name)) {
+//      return DataTypes.DOUBLE;
+//    } else if (DataTypes.NULL.getName().equalsIgnoreCase(name)) {
+//      return DataTypes.NULL;
+//    } else if (DataTypes.BYTE_ARRAY.getName().equalsIgnoreCase(name)) {
+//      return DataTypes.BYTE_ARRAY;
+//    } else if (DataTypes.BYTE_ARRAY.getName().equalsIgnoreCase(name)) {
+//      return DataTypes.BYTE_ARRAY;
+//    } else if (name.equalsIgnoreCase("decimal")) {
+//      return DataTypes.createDefaultDecimalType();
+//    } else if (name.equalsIgnoreCase("array")) {
+//      return DataTypes.createDefaultArrayType();
+//    } else if (name.equalsIgnoreCase("struct")) {
+//      return DataTypes.createDefaultStructType();
+//    } else if (name.equalsIgnoreCase("map")) {
+//      return DataTypes.createDefaultMapType();
+//    } else {
+//      throw new RuntimeException("create DataType with invalid name: " + name);
+//    }
+//  }
+//
+//  /**
+//   * @param dataType extracted from the json data
+//   * @return returns the datatype based on the input string from json to deserialize the tableInfo
+//   */
+//  public static DataType valueOf(DataType dataType) {
+//    if (dataType.getName().equalsIgnoreCase("decimal")) {
+//      DecimalType decimalType = (DecimalType) dataType;
+//      return DataTypes.createDecimalType(decimalType.getPrecision(), decimalType.getScale());
+//    } else if (dataType.getName().equalsIgnoreCase("array")) {
+//      ArrayType array = (ArrayType) dataType;
+//      return DataTypes.createArrayType(valueOf(array.getElementType()));
+//    } else if (dataType.getName().equalsIgnoreCase("struct")) {
+//      StructType structType = (StructType) dataType;
+//      return DataTypes.createStructType(structType.getFields());
+//    } else if (dataType.getName().equalsIgnoreCase("map")) {
+//      MapType mapType = (MapType) dataType;
+//      return DataTypes.createMapType(valueOf(mapType.getKeyType()),
+//          valueOf(mapType.getValueType()));
+//    } else {
+//      return valueOf(dataType.getName());
+//    }
+//  }
 
   /**
    * Method to type case the data based on modified data type. This method will used for

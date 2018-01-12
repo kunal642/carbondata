@@ -26,16 +26,16 @@ import org.apache.carbondata.core.util.ByteUtil;
 public final class Comparator {
 
   public static SerializableComparator getComparator(DataType dataType) {
-    if (dataType == DataTypes.BOOLEAN) {
+    if (dataType.equals(DataTypes.BOOLEAN)) {
       return new BooleanSerializableComparator();
-    } else if (dataType == DataTypes.INT) {
+    } else if (dataType.equals(DataTypes.INT)) {
       return new IntSerializableComparator();
-    } else if (dataType == DataTypes.SHORT) {
+    } else if (dataType.equals(DataTypes.SHORT)) {
       return new ShortSerializableComparator();
-    } else if (dataType == DataTypes.DOUBLE) {
+    } else if (dataType.equals(DataTypes.DOUBLE)) {
       return new DoubleSerializableComparator();
-    } else if (dataType == DataTypes.LONG || dataType == DataTypes.DATE
-        || dataType == DataTypes.TIMESTAMP) {
+    } else if (dataType.equals(DataTypes.LONG) || dataType.equals(DataTypes.DATE)
+        || dataType.equals(DataTypes.TIMESTAMP)) {
       return new LongSerializableComparator();
     } else if (DataTypes.isDecimal(dataType)) {
       return new BigDecimalSerializableComparator();

@@ -17,6 +17,8 @@
 
 package org.apache.carbondata.core.metadata.datatype;
 
+import java.util.Objects;
+
 public class ArrayType extends DataType {
 
   private DataType elementType;
@@ -29,5 +31,22 @@ public class ArrayType extends DataType {
   @Override
   public boolean isComplexType() {
     return true;
+  }
+
+  public DataType getElementType() {
+    return elementType;
+  }
+
+  @Override public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    if (!super.equals(o)) return false;
+    ArrayType arrayType = (ArrayType) o;
+    return Objects.equals(elementType, arrayType.elementType);
+  }
+
+  @Override public int hashCode() {
+
+    return Objects.hash(super.hashCode(), elementType);
   }
 }

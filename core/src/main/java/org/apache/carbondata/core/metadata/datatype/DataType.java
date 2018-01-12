@@ -18,6 +18,7 @@
 package org.apache.carbondata.core.metadata.datatype;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 public class DataType implements Serializable {
 
@@ -100,6 +101,17 @@ public class DataType implements Serializable {
     }
   }
 
+  @Override public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    DataType dataType = (DataType) o;
+    return id == dataType.id && Objects.equals(name, dataType.name);
+  }
+
+  @Override public int hashCode() {
+    return Objects.hash(id, name);
+  }
+
   public static DataType getDataType(char type) {
     switch (type) {
       case BIG_INT_MEASURE_CHAR:
@@ -109,6 +121,7 @@ public class DataType implements Serializable {
       case BIG_DECIMAL_MEASURE_CHAR:
         return DataTypes.createDefaultDecimalType();
       case 'l':
+
         return DataTypes.LEGACY_LONG;
       default:
         throw new RuntimeException("Unexpected type: " + type);
