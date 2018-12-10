@@ -25,6 +25,8 @@ class TestComplexDataType extends QueryTest with BeforeAndAfterAll {
   override def beforeAll(): Unit = {
     sql("DROP TABLE IF EXISTS table1")
     sql("DROP TABLE IF EXISTS test")
+    CarbonProperties.getInstance()
+      .addProperty(CarbonCommonConstants.CARBON_BAD_RECORDS_ACTION, "FAIL")
   }
 
   override def afterAll(): Unit = {
@@ -56,9 +58,9 @@ class TestComplexDataType extends QueryTest with BeforeAndAfterAll {
   test("test projection pushDown for Array") {
     sql("DROP TABLE IF EXISTS table1")
     sql(
-      "create table table1 (roll string,person array<int>) stored by " +
+      "create table table1 (roll string,person array<string>) stored by " +
       "'carbondata'")
-    sql("insert into table1 values('abc','1$2$3')")
+    sql("insert into table1 values('abc','')")
     checkAnswer(sql("select roll,person from table1"),
       Seq(Row("abc", mutable.WrappedArray.make(Array(1, 2, 3)))))
   }

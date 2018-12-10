@@ -34,7 +34,7 @@ import org.apache.log4j.Logger;
 
 public class S3CarbonFile extends HDFSCarbonFile {
 
-  private static final Logger LOGGER =
+  protected static final Logger LOGGER =
       LogServiceFactory.getLogService(HDFSCarbonFile.class.getName());
 
   public S3CarbonFile(String filePath) {

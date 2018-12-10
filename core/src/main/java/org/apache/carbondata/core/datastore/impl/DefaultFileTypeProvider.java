@@ -22,6 +22,7 @@ import org.apache.carbondata.core.datastore.filesystem.AlluxioCarbonFile;
 import org.apache.carbondata.core.datastore.filesystem.CarbonFile;
 import org.apache.carbondata.core.datastore.filesystem.HDFSCarbonFile;
 import org.apache.carbondata.core.datastore.filesystem.LocalCarbonFile;
+import org.apache.carbondata.core.datastore.filesystem.OBSCarbonFile;
 import org.apache.carbondata.core.datastore.filesystem.S3CarbonFile;
 import org.apache.carbondata.core.datastore.filesystem.ViewFSCarbonFile;
 
@@ -37,6 +38,7 @@ public class DefaultFileTypeProvider implements FileTypeInterface {
       case ALLUXIO:
       case VIEWFS:
       case S3:
+      case OBS:
         return new DFSFileReaderImpl(configuration);
       default:
         return new FileReaderImpl();
@@ -51,6 +53,8 @@ public class DefaultFileTypeProvider implements FileTypeInterface {
         return new HDFSCarbonFile(path);
       case S3:
         return new S3CarbonFile(path);
+      case OBS:
+        return new OBSCarbonFile(path);
       case ALLUXIO:
         return new AlluxioCarbonFile(path);
       case VIEWFS:
@@ -68,6 +72,8 @@ public class DefaultFileTypeProvider implements FileTypeInterface {
         return new HDFSCarbonFile(path, conf);
       case S3:
         return new S3CarbonFile(path, conf);
+      case OBS:
+        return new OBSCarbonFile(path, conf);
       case ALLUXIO:
         return new AlluxioCarbonFile(path);
       case VIEWFS:

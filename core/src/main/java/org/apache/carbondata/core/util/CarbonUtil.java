@@ -692,7 +692,7 @@ public final class CarbonUtil {
         lowerPath.startsWith(CarbonCommonConstants.ALLUXIOURL_PREFIX) ||
         lowerPath.startsWith(CarbonCommonConstants.S3N_PREFIX) ||
         lowerPath.startsWith(CarbonCommonConstants.S3_PREFIX) ||
-        lowerPath.startsWith(CarbonCommonConstants.S3A_PREFIX);
+        lowerPath.startsWith(CarbonCommonConstants.S3A_PREFIX) || lowerPath.startsWith("obs://");
   }
 
   public static String removeAKSK(String filePath) {
@@ -2549,6 +2549,7 @@ public final class CarbonUtil {
       case ALLUXIO:
       case VIEWFS:
       case S3:
+      case OBS:
         Path path = new Path(segmentPath);
         FileSystem fs = path.getFileSystem(FileFactory.getConfiguration());
         if (fs.exists(path)) {

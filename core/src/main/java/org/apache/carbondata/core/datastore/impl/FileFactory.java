@@ -91,6 +91,8 @@ public final class FileFactory {
         lowerPath.startsWith(CarbonCommonConstants.S3A_PREFIX) ||
         lowerPath.startsWith(CarbonCommonConstants.S3_PREFIX)) {
       return FileType.S3;
+    } else if (lowerPath.startsWith("obs:")) {
+      return FileType.OBS;
     }
     return FileType.LOCAL;
   }
@@ -364,7 +366,7 @@ public final class FileFactory {
   }
 
   public enum FileType {
-    LOCAL, HDFS, ALLUXIO, VIEWFS, S3
+    LOCAL, HDFS, ALLUXIO, VIEWFS, S3, OBS
   }
 
   /**
@@ -382,6 +384,7 @@ public final class FileFactory {
       case ALLUXIO:
       case VIEWFS:
       case S3:
+      case OBS:
         return filePath;
       case LOCAL:
       default:
@@ -431,6 +434,7 @@ public final class FileFactory {
       case ALLUXIO:
       case VIEWFS:
       case S3:
+      case OBS:
         Path path = new Path(filePath);
         FileSystem fs = path.getFileSystem(getConfiguration());
         return fs.getContentSummary(path).getLength();
@@ -469,6 +473,7 @@ public final class FileFactory {
     FileFactory.FileType fileType = FileFactory.getFileType(directoryPath);
     switch (fileType) {
       case S3:
+      case OBS:
       case HDFS:
       case VIEWFS:
         try {

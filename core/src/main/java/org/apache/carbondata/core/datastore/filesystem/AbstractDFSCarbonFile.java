@@ -56,10 +56,10 @@ public abstract class AbstractDFSCarbonFile implements CarbonFile {
   /**
    * LOGGER
    */
-  private static final Logger LOGGER =
+  protected static final Logger LOGGER =
       LogServiceFactory.getLogService(AbstractDFSCarbonFile.class.getName());
   protected FileStatus fileStatus;
-  public FileSystem fs;
+  protected FileSystem fs;
   protected Configuration hadoopConf;
 
   public AbstractDFSCarbonFile(String filePath) {

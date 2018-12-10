@@ -35,7 +35,7 @@
   <inceptionYear>2016</inceptionYear>
   <packaging>pom</packaging>
 
-  <version>1.6.0-SNAPSHOT</version>
+  <version>1.5.1.0100</version>
 
   <licenses>
     <license>
@@ -126,15 +126,20 @@
   </properties>
 
   <repositories>
+
+    <repository>
+      <id>huaweicloudsdk</id>
+      <url>http://100.120.206.145:8081/nexus/content/groups/cloud_bdais-mrs-MRS_hadoop3-public</url>
+      <releases><enabled>true</enabled></releases>
+      <snapshots><enabled>true</enabled></snapshots>
+    </repository>
+
     <repository>
       <id>central</id>
-      <!-- This should be at top, it makes maven try the central repo first and then others and hence faster dep resolution -->
-      <name>Maven Repository</name>
-      <url>http://repo1.maven.org/maven2</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
+      <name>Mavn Centreal</name>
+      <url>http://repo2.maven.org/maven2/</url>
     </repository>
+
   </repositories>
 
   <dependencyManagement>
@@ -633,7 +638,7 @@
     <profile>
       <id>spark-2.3</id>
       <properties>
-        <spark.version>2.3.2</spark.version>
+        <spark.version>2.3.2-mrs-1.8.0</spark.version>
         <scala.binary.version>2.11</scala.binary.version>
         <scala.version>2.11.8</scala.version>
       </properties>

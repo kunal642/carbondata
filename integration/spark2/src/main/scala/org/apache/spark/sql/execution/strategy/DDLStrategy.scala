@@ -303,7 +303,9 @@ class DDLStrategy(sparkSession: SparkSession) extends SparkStrategy {
         // TODO remove this limitation later
         val property = properties.find(_._1.equalsIgnoreCase("streaming"))
         if (property.isDefined) {
-          if (carbonTable.getTablePath.startsWith("s3") && property.get._2.equalsIgnoreCase("s3")) {
+          if ((carbonTable.getTablePath.startsWith("s3") && property.get._2.equalsIgnoreCase("s3"))
+              || (carbonTable.getTablePath.startsWith("obs") && property.get._2.equalsIgnoreCase
+          ("obs"))) {
             throw new UnsupportedOperationException("streaming is not supported with s3 store")
           }
           if (carbonTable.isStreamingSink) {
