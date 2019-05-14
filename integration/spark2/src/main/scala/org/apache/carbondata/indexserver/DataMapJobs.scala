@@ -64,7 +64,7 @@ class DistributedDataMapJob extends AbstractDataMapJob {
       filterInf = removeSparkUnknown(filterInf,
         dataMapFormat.getCarbonTable.getAbsoluteTableIdentifier, filterProcessor)
       dataMapFormat.setFilterResolverIntf(filterInf)
-      IndexServer.getClient.getSplits(dataMapFormat).toList.asJava
+      IndexServer.getClient.getSplits(dataMapFormat).getExtendedBlocklets
     }
     LOGGER.info(s"Time taken to get response from server: $time ms")
     resonse
@@ -107,6 +107,20 @@ class DistributedDataMapJob extends AbstractDataMapJob {
 class EmbeddedDataMapJob extends AbstractDataMapJob {
 
   override def execute(dataMapFormat: DistributableDataMapFormat): util.List[ExtendedBlocklet] = {
+    IndexServer.getSplits(dataMapFormat).getExtendedBlocklets
+  }
+
+}
+
+class DistributedClearCacheJob extends AbstractDataMapJob {
+
+  val LOGGER: Logger = LogServiceFactory.getLogService(this.getClass.getCanonicalName)
+
+  override def execute(dataMapFormat: DistributableDataMapFormat): util.List[ExtendedBlocklet] = {
+    if (LOGGER.isDebugEnabled) {
+      val messageSize = SizeEstimator.estimate(dataMapFormat)
+      LOGGER.debug(s"Size of message sent to Index Server: $messageSize")
+    }
     val spark = SparkSQLUtil.getSparkSession
     val taskGroupId = spark.sparkContext.getLocalProperty("spark.jobGroup.id") match {
       case null => ""
@@ -118,7 +132,7 @@ class EmbeddedDataMapJob extends AbstractDataMapJob {
     }
     dataMapFormat.setTaskGroupId(taskGroupId)
     dataMapFormat.setTaskGroupDesc(taskGroupDesc)
-    IndexServer.getSplits(dataMapFormat).toList.asJava
+    IndexServer.getSplits(dataMapFormat).getExtendedBlocklets
   }
 
 }
