@@ -559,13 +559,24 @@ public class CarbonTableInputFormat<T> extends CarbonInputFormat<T> {
       Map<String, Long> blockletToRowCountMap = new HashMap<>();
       if (CarbonProperties.getInstance().isDistributedPruningEnabled(table.getDatabaseName(),
           table.getTableName())) {
-        List<InputSplit> extendedBlocklets = CarbonTableInputFormat.convertToCarbonInputSplit(
-            getDistributedSplit(table, null, partitions, filteredSegment,
-                allSegments.getInvalidSegments(), toBeCleanedSegments));
-        for (InputSplit extendedBlocklet : extendedBlocklets) {
-          CarbonInputSplit blocklet = (CarbonInputSplit) extendedBlocklet;
-          blockletToRowCountMap.put(blocklet.getSegmentId() + "," + blocklet.getFilePath(),
-              (long) blocklet.getDetailInfo().getRowCount());
+        try {
+          List<InputSplit> extendedBlocklets = CarbonTableInputFormat.convertToCarbonInputSplit(
+              getDistributedSplit(table, null, partitions, filteredSegment,
+                  allSegments.getInvalidSegments(), toBeCleanedSegments));
+          for (InputSplit extendedBlocklet : extendedBlocklets) {
+            CarbonInputSplit blocklet = (CarbonInputSplit) extendedBlocklet;
+            blockletToRowCountMap.put(blocklet.getSegmentId() + "," + blocklet.getFilePath(),
+                (long) blocklet.getDetailInfo().getRowCount());
+          }
+        } catch (Exception e) {
+          // Check if fallback is disabled then directly throw exception otherwise try driver
+          // pruning.
+          if (CarbonProperties.getInstance().isFallBackDisabled()) {
+            throw e;
+          }
+          TableDataMap defaultDataMap = DataMapStoreManager.getInstance().getDefaultDataMap(table);
+          blockletToRowCountMap.putAll(
+              defaultDataMap.getBlockRowCount(filteredSegment, partitions, defaultDataMap));
         }
       } else {
         TableDataMap defaultDataMap = DataMapStoreManager.getInstance().getDefaultDataMap(table);
