@@ -25,14 +25,14 @@ import org.apache.hadoop.net.NetUtils
 import org.apache.hadoop.security.{KerberosInfo, SecurityUtil, UserGroupInformation}
 import org.apache.spark.SparkConf
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
-import org.apache.spark.sql.{CarbonSession, SparkSession}
 import org.apache.spark.sql.util.SparkSQLUtil
+import org.apache.spark.sql.{CarbonSession, SparkSession}
 
 import org.apache.carbondata.common.logging.LogServiceFactory
 import org.apache.carbondata.core.constants.CarbonCommonConstants
 import org.apache.carbondata.core.datamap.DistributableDataMapFormat
 import org.apache.carbondata.core.datastore.impl.FileFactory
-import org.apache.carbondata.core.indexstore.ExtendedBlocklet
+import org.apache.carbondata.core.indexstore.ExtendedBlockletWrapperContainer
 import org.apache.carbondata.core.util.CarbonProperties
 
 @ProtocolInfo(protocolName = "Server", protocolVersion = 1)
@@ -42,7 +42,7 @@ trait ServerInterface {
   /**
    * Used to prune and cache the datamaps for the table.
    */
-  def getSplits(request: DistributableDataMapFormat): Array[ExtendedBlocklet]
+  def getSplits(request: DistributableDataMapFormat): ExtendedBlockletWrapperContainer
 
   /**
    * Get the cache size for the specified table.
@@ -99,13 +99,23 @@ object IndexServer extends ServerInterface {
     })
   }
 
-  def getSplits(request: DistributableDataMapFormat): Array[ExtendedBlocklet] = doAs {
-    val splits = new DistributedPruneRDD(sparkSession, request).collect()
-    DistributedRDDUtils.updateExecutorCacheSize(splits.map(_._1).toSet)
-    if (request.isJobToClearDataMaps) {
-      DistributedRDDUtils.invalidateCache(request.getCarbonTable.getTableUniqueName)
+  def getSplits(request: DistributableDataMapFormat): ExtendedBlockletWrapperContainer = {
+    doAs {
+      val splits = new DistributedPruneRDD(sparkSession, request).collect()
+      var startTime = System.currentTimeMillis()
+      DistributedRDDUtils.updateExecutorCacheSize(splits.map(_._1).toSet)
+      LOGGER
+        .info("Time taken to update executor cache: " + (System.currentTimeMillis() - startTime))
+      if (request.isJobToClearDataMaps) {
+        DistributedRDDUtils.invalidateCache(request.getCarbonTable.getTableUniqueName)
+      }
+      startTime = System.currentTimeMillis()
+      val d = new ExtendedBlockletWrapperContainer(splits.map(_._2))
+      LOGGER
+        .info("Time taken to create ExtendedBlockletWrapperContainer: " +
+              (System.currentTimeMillis() - startTime))
+      d
     }
-    splits.map(_._2)
   }
 
   override def invalidateSegmentCache(databaseName: String, tableName: String,

@@ -89,6 +89,11 @@ object DistributionUtil {
     }
   }
 
+  def getExecutors(sparkContext: SparkContext): Seq[String] = {
+    val bm = sparkContext.env.blockManager
+    bm.master.getPeers(bm.blockManagerId).map(_.host)
+  }
+
   private def getLocalhostIPs = {
     val iface = NetworkInterface.getNetworkInterfaces
     var addresses: List[InterfaceAddress] = List.empty

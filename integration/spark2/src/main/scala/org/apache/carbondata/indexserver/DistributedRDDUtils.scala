@@ -20,12 +20,11 @@ import java.util.concurrent.ConcurrentHashMap
 
 import scala.collection.JavaConverters._
 
-import org.apache.commons.lang.StringUtils
 import org.apache.hadoop.mapreduce.InputSplit
 import org.apache.spark.Partition
 
-import org.apache.carbondata.core.datamap.{DataMapDistributable, Segment}
 import org.apache.carbondata.core.datamap.dev.expr.DataMapDistributableWrapper
+import org.apache.carbondata.core.datamap.{DataMapDistributable, Segment}
 
 object DistributedRDDUtils {
   // Segment number to executorNode mapping
@@ -36,8 +35,13 @@ object DistributedRDDUtils {
   val executorToCacheSizeMapping: java.util.Map[String, Long] =
     new ConcurrentHashMap[String, Long]()
 
-  def getExecutors(segment: Array[InputSplit], executorsList : Set[String],
-      tableUniqueName: String, rddId: Int): Seq[Partition] = {
+  private def splitTask(splits: Seq[DataMapDistributableWrapper]) = {
+    val d = splits.splitAt(splits.length / 2)
+    Seq(d._1, d._2)
+  }
+
+  def getExecutors(segment: Array[InputSplit], executorsList: Set[String],
+      tableUniqueName: String, rddId: Int): Array[Partition] = {
     // sort the partitions in increasing order of index size.
     val (segments, legacySegments) = segment.span(split => split
       .asInstanceOf[DataMapDistributableWrapper].getDistributable.getSegment.getIndexSize > 0)
@@ -52,15 +56,25 @@ object DistributedRDDUtils {
       // extract the dead executor host name
       DistributedRDDUtils.invalidateExecutors(invalidExecutors.toSeq)
     }
-    (convertToPartition(legacySegments, tableUniqueName, executorsList) ++
-     convertToPartition(sortedPartitions, tableUniqueName, executorsList)).zipWithIndex.map {
-      case (dataMapDistributable, index) =>
-        new DataMapRDDPartition(rddId, index, dataMapDistributable)
+    val groupedPartitions = (convertToPartition(legacySegments, tableUniqueName, executorsList) ++
+     convertToPartition(sortedPartitions, tableUniqueName, executorsList)).groupBy {
+      partition =>
+        partition.getLocations.head
     }
+    groupedPartitions.flatMap {
+      case (_, dataMapDistributable) =>
+        val wrapperSplits = splitTask(dataMapDistributable)
+        wrapperSplits.flatMap(splitTask)
+    }.zipWithIndex.map {
+      case (wrapperSplits, index) =>
+        new DataMapRDDPartition(rddId,
+        index, wrapperSplits,
+        wrapperSplits.head.getLocations)
+    }.toArray
   }
 
   private def convertToPartition(segments: Seq[InputSplit], tableUniqueName: String,
-      executorList: Set[String]): Seq[InputSplit] = {
+      executorList: Set[String]): Seq[DataMapDistributableWrapper] = {
     segments.map { partition =>
       val wrapper: DataMapDistributable = partition.asInstanceOf[DataMapDistributableWrapper]
         .getDistributable
@@ -69,7 +83,7 @@ object DistributedRDDUtils {
       }
       wrapper.setLocations(Array(DistributedRDDUtils
         .assignExecutor(tableUniqueName, wrapper.getSegment, executorList)))
-      partition
+      partition.asInstanceOf[DataMapDistributableWrapper]
     }
   }
 

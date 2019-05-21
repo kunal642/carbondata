@@ -85,6 +85,10 @@ public class ExtendedBlocklet extends Blocklet {
     this.inputSplit.setSegment(segment);
   }
 
+  public void setFilePath(String path) {
+    super.setFilePath(path);
+  }
+
   public String getPath() {
     return getFilePath();
   }
@@ -150,7 +154,41 @@ public class ExtendedBlocklet extends Blocklet {
     this.inputSplit.setColumnSchema(columnSchema);
   }
 
+  public void writeLess(DataOutput out) throws IOException {
+    super.write(out);
+    if (inputSplit != null) {
+      out.writeBoolean(true);
+      inputSplit.writeLess(out);
+      String[] locations = getLocations();
+      if (locations != null) {
+        out.writeBoolean(true);
+        out.writeInt(locations.length);
+        for (String location : locations) {
+          out.writeUTF(location);
+        }
+      } else {
+        out.writeBoolean(false);
+      }
+    } else {
+      out.writeBoolean(false);
+    }
+  }
 
+  public void readLess(DataInput in) throws IOException {
+    super.readFields(in);
+    if (in.readBoolean()) {
+      inputSplit = new CarbonInputSplit();
+      inputSplit.readLess(in);
+      if (in.readBoolean()) {
+        int numLocations = in.readInt();
+        String[] locations = new String[numLocations];
+        for (int i = 0; i < numLocations; i++) {
+          locations[i] = in.readUTF();
+        }
+        inputSplit.setLocation(locations);
+      }
+    }
+  }
 
   @Override public void write(DataOutput out) throws IOException {
     super.write(out);

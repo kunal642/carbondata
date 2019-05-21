@@ -77,6 +77,7 @@ public class CarbonInputSplit extends FileSplit
    */
   private String[] deleteDeltaFiles;
 
+  // write block and blocklet details info
   private BlockletDetailInfo detailInfo;
 
   private FileFormat fileFormat = FileFormat.COLUMNAR_V3;
@@ -269,6 +270,64 @@ public class CarbonInputSplit extends FileSplit
     if (detailInfoExists) {
       detailInfo = new BlockletDetailInfo();
       detailInfo.readFields(in);
+    }
+    boolean dataMapWriterPathExists = in.readBoolean();
+    if (dataMapWriterPathExists) {
+      dataMapWritePath = in.readUTF();
+    }
+    int validBlockletIdCount = in.readShort();
+    validBlockletIds = new HashSet<>(validBlockletIdCount);
+    for (int i = 0; i < validBlockletIdCount; i++) {
+      validBlockletIds.add((int) in.readShort());
+    }
+  }
+
+  public void writeLess(DataOutput out) throws IOException {
+    out.writeLong(start);
+    out.writeLong(length);
+    out.writeUTF(segment.toString());
+    out.writeShort(version.number());
+    // set to -1 if not required and dont write
+    out.writeUTF(blockletId);
+    // check whether
+    out.writeInt(null != deleteDeltaFiles ? deleteDeltaFiles.length : 0);
+    if (null != deleteDeltaFiles) {
+      for (int i = 0; i < deleteDeltaFiles.length; i++) {
+        out.writeUTF(deleteDeltaFiles[i]);
+      }
+    }
+    out.writeBoolean(detailInfo != null || dataMapRow != null);
+    if (detailInfo != null) {
+      detailInfo.writeLess(out);
+    }
+    out.writeBoolean(dataMapWritePath != null);
+    if (dataMapWritePath != null) {
+      out.writeUTF(dataMapWritePath);
+    }
+    out.writeShort(getValidBlockletIds().size());
+    for (Integer blockletId : getValidBlockletIds()) {
+      out.writeShort(blockletId);
+    }
+  }
+
+  public void readLess(DataInput in) throws IOException {
+    this.start = in.readLong();
+    this.length = in.readLong();
+    this.segment = Segment.toSegment(in.readUTF());
+    this.version = ColumnarFormatVersion.valueOf(in.readShort());
+    this.blockletId = in.readUTF();
+    int numberOfDeleteDeltaFiles = in.readInt();
+    deleteDeltaFiles = new String[numberOfDeleteDeltaFiles];
+    for (int i = 0; i < numberOfDeleteDeltaFiles; i++) {
+      deleteDeltaFiles[i] = in.readUTF();
+    }
+    boolean detailInfoExists = in.readBoolean();
+    if (detailInfoExists) {
+      detailInfo = new BlockletDetailInfo();
+      detailInfo.readLess(in);
+      detailInfo.setBlockletId(Short.parseShort(blockletId));
+      detailInfo.setVersionNumber(version.number());
+      detailInfo.setBlockSize(length);
     }
     boolean dataMapWriterPathExists = in.readBoolean();
     if (dataMapWriterPathExists) {
@@ -478,6 +537,10 @@ public class CarbonInputSplit extends FileSplit
     this.dataMapRow = dataMapRow;
   }
 
+  public void setTaskId(String taskId) {
+    this.taskId = taskId;
+  }
+
   public void setColumnCardinality(int[] columnCardinality) {
     this.columnCardinality = columnCardinality;
   }
@@ -596,6 +659,18 @@ public class CarbonInputSplit extends FileSplit
 
   public String getFilePath() {
     return this.filePath;
+  }
+
+  public void setFilePath(String filePath) {
+    this.filePath = filePath;
+  }
+
+  public void setBucketId(String bucketId) {
+    this.bucketId = bucketId;
+  }
+
+  public void setBlockletId(String blockletId) {
+    this.blockletId = blockletId;
   }
 
   /** The position of the first byte in the file to process. */

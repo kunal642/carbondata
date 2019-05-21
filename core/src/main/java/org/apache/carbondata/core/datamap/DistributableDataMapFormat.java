@@ -62,7 +62,7 @@ public class DistributableDataMapFormat extends FileInputFormat<Void, ExtendedBl
 
   private FilterResolverIntf filterResolverIntf;
 
-  private List<Segment> validSegments;
+  private transient List<Segment> validSegments;
 
   private List<String> invalidSegments;
 
@@ -234,6 +234,8 @@ public class DistributableDataMapFormat extends FileInputFormat<Void, ExtendedBl
 
   @Override
   public void write(DataOutput out) throws IOException {
+    Logger LOGGER = LogServiceFactory.getLogService(this.getClass().getCanonicalName());
+    long startTime = System.currentTimeMillis();
     table.write(out);
     out.writeInt(invalidSegments.size());
     for (String invalidSegment : invalidSegments) {
@@ -270,10 +272,13 @@ public class DistributableDataMapFormat extends FileInputFormat<Void, ExtendedBl
       out.writeBoolean(false);
     }
     out.writeUTF(dataMapToClear);
+    LOGGER.info("Time taken to write format: " + (System.currentTimeMillis() - startTime));
   }
 
   @Override
   public void readFields(DataInput in) throws IOException {
+    Logger LOGGER = LogServiceFactory.getLogService(this.getClass().getCanonicalName());
+    long startTime = System.currentTimeMillis();
     this.table = new CarbonTable();
     table.readFields(in);
     int invalidSegmentSize = in.readInt();
@@ -311,6 +316,7 @@ public class DistributableDataMapFormat extends FileInputFormat<Void, ExtendedBl
           .convertStringToObject(new String(filterResolverBytes, Charset.defaultCharset()));
     }
     this.dataMapToClear = in.readUTF();
+    LOGGER.info("Time taken to read format: " + (System.currentTimeMillis() - startTime));
   }
 
   private void initReadCommittedScope() throws IOException {
