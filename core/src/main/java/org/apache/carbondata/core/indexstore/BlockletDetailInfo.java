@@ -168,6 +168,62 @@ public class BlockletDetailInfo implements Serializable, Writable {
     this.blockSize = blockSize;
   }
 
+  public void writeLess(DataOutput out) throws IOException {
+    out.writeInt(rowCount);
+    out.writeShort(dimLens.length);
+    for (int i = 0; i < dimLens.length; i++) {
+      out.writeInt(dimLens[i]);
+    }
+    out.writeLong(schemaUpdatedTimeStamp);
+    out.writeBoolean(blockletInfo != null);
+    if (blockletInfo != null) {
+      blockletInfo.write(out);
+    }
+    out.writeLong(blockFooterOffset);
+    // convert column schema list to binary format for serializing
+    convertColumnSchemaToBinary();
+    if (null != columnSchemaBinary) {
+      out.writeInt(columnSchemaBinary.length);
+      out.write(columnSchemaBinary);
+    } else {
+      // write -1 if columnSchemaBinary is null so that at the time of reading it can distinguish
+      // whether schema is written or not
+      out.writeInt(-1);
+    }
+    out.writeInt(blockletInfoBinary.length);
+    out.write(blockletInfoBinary);
+    out.writeBoolean(isLegacyStore);
+    out.writeBoolean(useMinMaxForPruning);
+  }
+
+  public void readLess(DataInput in) throws IOException {
+    rowCount = in.readInt();
+    dimLens = new int[in.readShort()];
+    for (int i = 0; i < dimLens.length; i++) {
+      dimLens[i] = in.readInt();
+    }
+    schemaUpdatedTimeStamp = in.readLong();
+    if (in.readBoolean()) {
+      blockletInfo = new BlockletInfo();
+      blockletInfo.readFields(in);
+    }
+    blockFooterOffset = in.readLong();
+    int bytesSize = in.readInt();
+    // if byteSize is -1 that means schema binary is not written
+    if (bytesSize != -1) {
+      byte[] schemaArray = new byte[bytesSize];
+      in.readFully(schemaArray);
+      readColumnSchema(schemaArray);
+    }
+    int byteSize = in.readInt();
+    blockletInfoBinary = new byte[byteSize];
+    in.readFully(blockletInfoBinary);
+    setBlockletInfoFromBinary();
+    isLegacyStore = in.readBoolean();
+    useMinMaxForPruning = in.readBoolean();
+  }
+
+
   @Override public void write(DataOutput out) throws IOException {
     out.writeInt(rowCount);
     out.writeShort(pagesCount);

@@ -18,6 +18,7 @@ package org.apache.carbondata.core.indexstore;
 
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.List;
 
@@ -85,6 +86,10 @@ public class ExtendedBlocklet extends Blocklet {
     this.inputSplit.setSegment(segment);
   }
 
+  public void setFilePath(String path) {
+    super.setFilePath(path);
+  }
+
   public String getPath() {
     return getFilePath();
   }
@@ -150,9 +155,7 @@ public class ExtendedBlocklet extends Blocklet {
     this.inputSplit.setColumnSchema(columnSchema);
   }
 
-
-
-  @Override public void write(DataOutput out) throws IOException {
+  public void serializeFields(DataOutput out) throws IOException {
     super.write(out);
     if (dataMapUniqueId == null) {
       out.writeBoolean(false);
@@ -160,41 +163,39 @@ public class ExtendedBlocklet extends Blocklet {
       out.writeBoolean(true);
       out.writeUTF(dataMapUniqueId);
     }
+    out.writeBoolean(inputSplit!=null);
     if (inputSplit != null) {
-      out.writeBoolean(true);
-      inputSplit.write(out);
-      String[] locations = getLocations();
-      if (locations != null) {
-        out.writeBoolean(true);
-        out.writeInt(locations.length);
-        for (String location : locations) {
-          out.writeUTF(location);
-        }
-      } else {
-        out.writeBoolean(false);
-      }
-    } else {
-      out.writeBoolean(false);
+      ExtendedByteArrayOutputStream bos = new ExtendedByteArrayOutputStream();
+      DataOutputStream dos = new DataOutputStream(bos);
+      inputSplit.setFilePath("");
+      inputSplit.serializeFields(dos);
+      out.writeInt(bos.getSize());
+      out.write(bos.getBuffer(), 0, bos.getSize());
     }
   }
 
-  @Override public void readFields(DataInput in) throws IOException {
+  public void deserializeFields(DataInput in)
+      throws IOException {
     super.readFields(in);
     if (in.readBoolean()) {
       dataMapUniqueId = in.readUTF();
     }
-    if (in.readBoolean()) {
-      inputSplit = new CarbonInputSplit();
-      inputSplit.readFields(in);
-      if (in.readBoolean()) {
-        int numLocations = in.readInt();
-        String[] locations = new String[numLocations];
-        for (int i = 0; i < numLocations; i++) {
-          locations[i] = in.readUTF();
-        }
-        inputSplit.setLocation(locations);
-      }
+    boolean isSplitPresent = in.readBoolean();
+    if(isSplitPresent) {
+      int serializeLen = in.readInt();
+      ExtendedByteArrayInputStream underlineStream =
+          (ExtendedByteArrayInputStream) ((ExtendedDataInputStream) in).getUnderlineStream();
+      int currentPosition = underlineStream.getPostion();
+      this.inputSplit = new CarbonInputSplit();
+      this.inputSplit.deserializeFields(in);
+      int leftoverPos = underlineStream.getPostion();
+      int newPosition = currentPosition + serializeLen;
+      underlineStream.setPosition(newPosition);
+      ExtendedByteArrayInputStream serializeDataStream =
+          new ExtendedByteArrayInputStream(underlineStream.getBuffer(), leftoverPos,
+              serializeLen - (leftoverPos - currentPosition));
+      this.inputSplit.setSerializeDataStream(serializeDataStream);
+      this.inputSplit.setFilePath(getFilePath());
     }
   }
-
 }

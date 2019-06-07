@@ -23,6 +23,7 @@ import scala.collection.JavaConverters._
 import org.apache.hadoop.mapreduce.InputSplit
 import org.apache.spark.Partition
 
+import org.apache.carbondata.common.logging.LogServiceFactory
 import org.apache.carbondata.core.datamap.{DataMapDistributable, Segment}
 import org.apache.carbondata.core.datamap.dev.expr.DataMapDistributableWrapper
 
@@ -64,15 +65,28 @@ object DistributedRDDUtils {
     if (invalidExecutorIds.nonEmpty) {
       DistributedRDDUtils.invalidateExecutors(invalidExecutorIds.toSeq)
     }
-    (convertToPartition(legacySegments, tableUniqueName, executorsList) ++
-     convertToPartition(sortedPartitions, tableUniqueName, executorsList)).zipWithIndex.map {
-      case (dataMapDistributable, index) =>
-        new DataMapRDDPartition(rddId, index, dataMapDistributable)
-    }
+    val groupedPartitions = (convertToPartition(legacySegments, tableUniqueName, executorsList) ++
+                             convertToPartition(sortedPartitions, tableUniqueName, executorsList))
+      .groupBy {
+        partition =>
+          partition.getLocations.head
+      }
+    val LOGGER = LogServiceFactory.getLogService(classOf[DistributedPruneRDD]
+      .getName)
+    groupedPartitions.map {
+      case (location, dataMapDistributable) =>
+        (location, dataMapDistributable)
+    }.zipWithIndex.map {
+      case ((location, splitList), index) =>
+        LOGGER.info("Firing " + splitList.size + s"on $location")
+        new DataMapRDDPartition(rddId,
+          index, splitList,
+          Array(location))
+    }.toArray.sortBy(_.index)
   }
 
   private def convertToPartition(segments: Seq[InputSplit], tableUniqueName: String,
-      executorList: Map[String, Seq[String]]): Seq[InputSplit] = {
+      executorList: Map[String, Seq[String]]): Seq[DataMapDistributableWrapper] = {
     segments.map { partition =>
       val wrapper: DataMapDistributable = partition.asInstanceOf[DataMapDistributableWrapper]
         .getDistributable
@@ -81,7 +95,7 @@ object DistributedRDDUtils {
       }
       wrapper.setLocations(Array(DistributedRDDUtils
         .assignExecutor(tableUniqueName, wrapper.getSegment, executorList)))
-      partition
+      partition.asInstanceOf[DataMapDistributableWrapper]
     }
   }
 

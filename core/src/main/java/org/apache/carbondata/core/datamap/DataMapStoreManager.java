@@ -463,12 +463,14 @@ public final class DataMapStoreManager {
    */
   public void clearInvalidSegments(CarbonTable carbonTable, List<String> segments)
       throws IOException {
+    if(segments.isEmpty()) {
+      return;
+    }
     getDefaultDataMap(carbonTable).clear(segments);
     List<TableDataMap> allDataMap = getAllDataMap(carbonTable);
     for (TableDataMap dataMap: allDataMap) {
       dataMap.clear(segments);
     }
-
   }
 
   public List<String> getSegmentsToBeRefreshed(CarbonTable carbonTable,

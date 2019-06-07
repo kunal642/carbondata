@@ -25,14 +25,14 @@ import org.apache.hadoop.net.NetUtils
 import org.apache.hadoop.security.{KerberosInfo, SecurityUtil, UserGroupInformation}
 import org.apache.spark.SparkConf
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
-import org.apache.spark.sql.{CarbonSession, SparkSession}
 import org.apache.spark.sql.util.SparkSQLUtil
+import org.apache.spark.sql.{CarbonSession, SparkSession}
 
 import org.apache.carbondata.common.logging.LogServiceFactory
 import org.apache.carbondata.core.constants.CarbonCommonConstants
 import org.apache.carbondata.core.datamap.DistributableDataMapFormat
 import org.apache.carbondata.core.datastore.impl.FileFactory
-import org.apache.carbondata.core.indexstore.ExtendedBlockletWrapper
+import org.apache.carbondata.core.indexstore.{ExtendedBlockletWrapper, ExtendedBlockletWrapperContainer}
 import org.apache.carbondata.core.util.CarbonProperties
 
 @ProtocolInfo(protocolName = "Server", protocolVersion = 1)
@@ -42,7 +42,7 @@ trait ServerInterface {
   /**
    * Used to prune and cache the datamaps for the table.
    */
-  def getSplits(request: DistributableDataMapFormat): ExtendedBlockletWrapper
+  def getSplits(request: DistributableDataMapFormat): ExtendedBlockletWrapperContainer
 
   /**
    * Get the cache size for the specified table.
@@ -99,12 +99,20 @@ object IndexServer extends ServerInterface {
     })
   }
 
-  def getSplits(request: DistributableDataMapFormat): ExtendedBlockletWrapper = doAs {
-    sparkSession.sparkContext.setLocalProperty("spark.jobGroup.id", request.getTaskGroupId)
-    sparkSession.sparkContext.setLocalProperty("spark.job.description", request.getTaskGroupDesc)
-    val splits = new DistributedPruneRDD(sparkSession, request).collect()
-    DistributedRDDUtils.updateExecutorCacheSize(splits.map(_._1).toSet)
-    new ExtendedBlockletWrapper(splits.map(_._2))
+  def getSplits(request: DistributableDataMapFormat): ExtendedBlockletWrapperContainer = {
+    doAs {
+      sparkSession.sparkContext.setLocalProperty("spark.jobGroup.id", request.getTaskGroupId)
+      sparkSession.sparkContext.setLocalProperty("spark.job.description", request.getTaskGroupDesc)
+      val path = request.getCarbonTable.getTablePath + "/" + request.getQueryId
+      val file = FileFactory.getCarbonFile(path)
+      LOGGER.info("*******************************creating file path:" + path)
+      if (!file.mkdirs(path)) {
+        LOGGER.info("Unable to create split out dir")
+      }
+      val splits = new DistributedPruneRDD(sparkSession, request).collect()
+      DistributedRDDUtils.updateExecutorCacheSize(splits.map(_._1).toSet)
+      new ExtendedBlockletWrapperContainer(splits.map(_._2))
+    }
   }
 
 

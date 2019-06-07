@@ -168,23 +168,30 @@ public class DataMapUtil {
 
   static List<ExtendedBlocklet> pruneDataMaps(CarbonTable table,
       FilterResolverIntf filterResolverIntf, List<Segment> segmentsToLoad,
-      List<PartitionSpec> partitions, List<ExtendedBlocklet> blocklets) throws IOException {
+      List<PartitionSpec> partitions, List<ExtendedBlocklet> blocklets,
+      DataMapChooser dataMapChooser) throws IOException {
     pruneSegments(segmentsToLoad, blocklets);
-    List<ExtendedBlocklet> cgDataMaps = pruneDataMaps(table, filterResolverIntf, segmentsToLoad,
-        partitions, blocklets,
-        DataMapLevel.CG);
+    if (dataMapChooser == null) {
+      return blocklets;
+    }
+    List<ExtendedBlocklet> cgDataMaps =
+        pruneDataMaps(table, filterResolverIntf, segmentsToLoad, partitions, blocklets,
+            DataMapLevel.CG, dataMapChooser);
     pruneSegments(segmentsToLoad, cgDataMaps);
-    return pruneDataMaps(table, filterResolverIntf, segmentsToLoad,
-        partitions, cgDataMaps,
-        DataMapLevel.FG);
+    return pruneDataMaps(table, filterResolverIntf, segmentsToLoad, partitions, cgDataMaps,
+        DataMapLevel.FG, dataMapChooser);
   }
 
   static List<ExtendedBlocklet> pruneDataMaps(CarbonTable table,
       FilterResolverIntf filterResolverIntf, List<Segment> segmentsToLoad,
-      List<PartitionSpec> partitions, List<ExtendedBlocklet> blocklets, DataMapLevel dataMapLevel)
-      throws IOException {
-    DataMapExprWrapper dataMapExprWrapper =
-        new DataMapChooser(table).chooseDataMap(dataMapLevel, filterResolverIntf);
+      List<PartitionSpec> partitions, List<ExtendedBlocklet> blocklets, DataMapLevel dataMapLevel,
+      DataMapChooser dataMapChooser) throws IOException {
+    DataMapExprWrapper dataMapExprWrapper = null;
+    if (dataMapLevel == DataMapLevel.CG) {
+      dataMapExprWrapper = dataMapChooser.chooseCGDataMap(filterResolverIntf);
+    } else if (dataMapLevel == DataMapLevel.FG) {
+      dataMapExprWrapper = dataMapChooser.chooseFGDataMap(filterResolverIntf);
+    }
     if (dataMapExprWrapper != null) {
       List<ExtendedBlocklet> extendedBlocklets = new ArrayList<>();
       // Prune segments from already pruned blocklets
@@ -198,9 +205,8 @@ public class DataMapUtil {
           prunnedBlocklet.addAll(dataMap.prune(dataMaps, wrapper.getDistributable(),
               dataMapExprWrapper.getFilterResolverIntf(wrapper.getUniqueId()), partitions));
         } else {
-          prunnedBlocklet
-              .addAll(dataMap.prune(segmentsToLoad, new DataMapFilter(filterResolverIntf),
-                  partitions));
+          prunnedBlocklet.addAll(
+              dataMap.prune(segmentsToLoad, new DataMapFilter(filterResolverIntf), partitions));
         }
         // For all blocklets initialize the detail info so that it can be serialized to the driver.
         for (ExtendedBlocklet blocklet : prunnedBlocklet) {
@@ -210,10 +216,6 @@ public class DataMapUtil {
         extendedBlocklets.addAll(prunnedBlocklet);
       }
       return dataMapExprWrapper.pruneBlocklets(extendedBlocklets);
-    }
-    // For all blocklets initialize the detail info so that it can be serialized to the driver.
-    for (ExtendedBlocklet blocklet : blocklets) {
-      blocklet.getDetailInfo();
     }
     return blocklets;
   }

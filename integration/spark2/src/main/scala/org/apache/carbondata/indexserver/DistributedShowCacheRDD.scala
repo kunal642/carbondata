@@ -16,12 +16,12 @@
  */
 package org.apache.carbondata.indexserver
 
-import org.apache.spark.{Partition, TaskContext}
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.hive.DistributionUtil
 import scala.collection.JavaConverters._
 
-import org.apache.carbondata.core.cache.CacheProvider
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.hive.DistributionUtil
+import org.apache.spark.{Partition, TaskContext}
+
 import org.apache.carbondata.core.datamap.DataMapStoreManager
 import org.apache.carbondata.hadoop.CarbonInputSplit
 import org.apache.carbondata.spark.rdd.CarbonRDD
@@ -37,7 +37,7 @@ class DistributedShowCacheRDD(@transient private val ss: SparkSession, tableName
         // create a dummy split for each executor to accumulate the cache size.
         val dummySplit = new CarbonInputSplit()
         dummySplit.setLocation(Array(executor))
-        new DataMapRDDPartition(id, idx, dummySplit)
+        new DataMapRDDPartition(id, idx, List(dummySplit), Array(executor))
     }
   }
 

@@ -65,7 +65,7 @@ public class DistributableDataMapFormat extends FileInputFormat<Void, ExtendedBl
 
   private FilterResolverIntf filterResolverIntf;
 
-  private List<Segment> validSegments;
+  private transient List<Segment> validSegments;
 
   private List<String> invalidSegments;
 
@@ -85,16 +85,16 @@ public class DistributableDataMapFormat extends FileInputFormat<Void, ExtendedBl
 
   private String taskGroupDesc = "";
 
+  private String queryId = "";
 
   DistributableDataMapFormat() {
 
   }
 
-  DistributableDataMapFormat(CarbonTable table,
-      List<Segment> validSegments, List<String> invalidSegments, boolean isJobToClearDataMaps,
-      String dataMapToClear) throws IOException {
-    this(table, null, validSegments, invalidSegments, null,
-        isJobToClearDataMaps, null, false);
+  DistributableDataMapFormat(CarbonTable table, List<Segment> validSegments,
+      List<String> invalidSegments, boolean isJobToClearDataMaps, String dataMapToClear)
+      throws IOException {
+    this(table, null, validSegments, invalidSegments, null, isJobToClearDataMaps, null, false);
     this.dataMapToClear = dataMapToClear;
   }
 
@@ -115,8 +115,7 @@ public class DistributableDataMapFormat extends FileInputFormat<Void, ExtendedBl
     this.isFallbackJob = isFallbackJob;
   }
 
-  @Override
-  public List<InputSplit> getSplits(JobContext job) throws IOException {
+  @Override public List<InputSplit> getSplits(JobContext job) throws IOException {
     List<DataMapDistributableWrapper> distributables;
     distributables =
         DataMapChooser.getDefaultDataMap(table, filterResolverIntf).toDistributable(validSegments);
@@ -125,16 +124,14 @@ public class DistributableDataMapFormat extends FileInputFormat<Void, ExtendedBl
     return inputSplits;
   }
 
-  @Override
-  public RecordReader<Void, ExtendedBlocklet> createRecordReader(InputSplit inputSplit,
+  @Override public RecordReader<Void, ExtendedBlocklet> createRecordReader(InputSplit inputSplit,
       TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
     return new RecordReader<Void, ExtendedBlocklet>() {
       private Iterator<ExtendedBlocklet> blockletIterator;
       private ExtendedBlocklet currBlocklet;
       private List<DataMap> dataMaps;
 
-      @Override
-      public void initialize(InputSplit inputSplit, TaskAttemptContext taskAttemptContext)
+      @Override public void initialize(InputSplit inputSplit, TaskAttemptContext taskAttemptContext)
           throws IOException, InterruptedException {
         DataMapDistributableWrapper distributable = (DataMapDistributableWrapper) inputSplit;
         distributable.getDistributable().getSegment().setCacheable(!isFallbackJob);
@@ -143,8 +140,7 @@ public class DistributableDataMapFormat extends FileInputFormat<Void, ExtendedBl
         segmentsToLoad.add(distributable.getDistributable().getSegment());
         if (isJobToClearDataMaps) {
           if (StringUtils.isNotEmpty(dataMapToClear)) {
-            List<TableDataMap> dataMaps =
-                DataMapStoreManager.getInstance().getAllDataMap(table);
+            List<TableDataMap> dataMaps = DataMapStoreManager.getInstance().getAllDataMap(table);
             int i = 0;
             for (TableDataMap tableDataMap : dataMaps) {
               if (tableDataMap != null && dataMapToClear
@@ -158,8 +154,8 @@ public class DistributableDataMapFormat extends FileInputFormat<Void, ExtendedBl
               }
               i++;
             }
-            DataMapStoreManager.getInstance().getAllDataMaps().put(table.getTableUniqueName(),
-                dataMaps);
+            DataMapStoreManager.getInstance().getAllDataMaps()
+                .put(table.getTableUniqueName(), dataMaps);
           } else {
             // if job is to clear datamaps just clear datamaps from cache and return
             DataMapStoreManager.getInstance()
@@ -172,34 +168,35 @@ public class DistributableDataMapFormat extends FileInputFormat<Void, ExtendedBl
           list.add(new ExtendedBlocklet());
           blockletIterator = list.iterator();
           return;
-        } else if (invalidSegments.size() > 0) {
-          // clear the segmentMap and from cache in executor when there are invalid segments
-          DataMapStoreManager.getInstance().clearInvalidSegments(table, invalidSegments);
         }
         List<ExtendedBlocklet> blocklets = new ArrayList<>();
+        DataMapChooser dataMapChooser = null;
+        if (filterResolverIntf != null) {
+          dataMapChooser = new DataMapChooser(table);
+        }
         if (dataMapLevel == null) {
           TableDataMap defaultDataMap = DataMapStoreManager.getInstance()
               .getDataMap(table, distributable.getDistributable().getDataMapSchema());
           dataMaps = defaultDataMap.getTableDataMaps(distributable.getDistributable());
           if (table.isTransactionalTable()) {
-            blocklets = defaultDataMap.prune(dataMaps, distributable.getDistributable(),
-                filterResolverIntf, partitions);
+            blocklets = defaultDataMap
+                .prune(dataMaps, distributable.getDistributable(), filterResolverIntf, partitions);
           } else {
-            blocklets = defaultDataMap.prune(segmentsToLoad, new DataMapFilter(filterResolverIntf),
-                partitions);
+            blocklets = defaultDataMap
+                .prune(segmentsToLoad, new DataMapFilter(filterResolverIntf), partitions);
           }
           blocklets = DataMapUtil
-              .pruneDataMaps(table, filterResolverIntf, segmentsToLoad, partitions, blocklets);
+              .pruneDataMaps(table, filterResolverIntf, segmentsToLoad, partitions, blocklets,
+                  dataMapChooser);
         } else {
           blocklets = DataMapUtil
               .pruneDataMaps(table, filterResolverIntf, segmentsToLoad, partitions, blocklets,
-                  dataMapLevel);
+                  dataMapLevel, dataMapChooser);
         }
         blockletIterator = blocklets.iterator();
       }
 
-      @Override
-      public boolean nextKeyValue() throws IOException, InterruptedException {
+      @Override public boolean nextKeyValue() throws IOException, InterruptedException {
         boolean hasNext = blockletIterator.hasNext();
         if (hasNext) {
           currBlocklet = blockletIterator.next();
@@ -210,23 +207,19 @@ public class DistributableDataMapFormat extends FileInputFormat<Void, ExtendedBl
         return hasNext;
       }
 
-      @Override
-      public Void getCurrentKey() throws IOException, InterruptedException {
+      @Override public Void getCurrentKey() throws IOException, InterruptedException {
         return null;
       }
 
-      @Override
-      public ExtendedBlocklet getCurrentValue() throws IOException, InterruptedException {
+      @Override public ExtendedBlocklet getCurrentValue() throws IOException, InterruptedException {
         return currBlocklet;
       }
 
-      @Override
-      public float getProgress() throws IOException, InterruptedException {
+      @Override public float getProgress() throws IOException, InterruptedException {
         return 0;
       }
 
-      @Override
-      public void close() throws IOException {
+      @Override public void close() throws IOException {
         if (null != dataMaps) {
           for (DataMap dataMap : dataMaps) {
             dataMap.finish();
@@ -240,8 +233,9 @@ public class DistributableDataMapFormat extends FileInputFormat<Void, ExtendedBl
     return table;
   }
 
-  @Override
-  public void write(DataOutput out) throws IOException {
+  @Override public void write(DataOutput out) throws IOException {
+    Logger LOGGER = LogServiceFactory.getLogService(this.getClass().getCanonicalName());
+    long startTime = System.currentTimeMillis();
     table.write(out);
     out.writeInt(invalidSegments.size());
     for (String invalidSegment : invalidSegments) {
@@ -281,10 +275,13 @@ public class DistributableDataMapFormat extends FileInputFormat<Void, ExtendedBl
     out.writeUTF(dataMapToClear);
     out.writeUTF(taskGroupId);
     out.writeUTF(taskGroupDesc);
+    out.writeUTF(queryId);
+    LOGGER.info("Time taken to write format: " + (System.currentTimeMillis() - startTime));
   }
 
-  @Override
-  public void readFields(DataInput in) throws IOException {
+  @Override public void readFields(DataInput in) throws IOException {
+    Logger LOGGER = LogServiceFactory.getLogService(this.getClass().getCanonicalName());
+    long startTime = System.currentTimeMillis();
     this.table = new CarbonTable();
     table.readFields(in);
     int invalidSegmentSize = in.readInt();
@@ -324,6 +321,8 @@ public class DistributableDataMapFormat extends FileInputFormat<Void, ExtendedBl
     this.dataMapToClear = in.readUTF();
     this.taskGroupId = in.readUTF();
     this.taskGroupDesc = in.readUTF();
+    this.queryId = in.readUTF();
+    LOGGER.info("Time taken to read format: " + (System.currentTimeMillis() - startTime));
   }
 
   private void initReadCommittedScope() throws IOException {
@@ -362,19 +361,19 @@ public class DistributableDataMapFormat extends FileInputFormat<Void, ExtendedBl
   }
 
   /* setTaskGroupId will be used for Index server to display Query
-  *  If Job name is >CARBON_INDEX_SERVER_JOBNAME_LENGTH
-  *  then need to cut as transferring big query to IndexServer will be costly.
-  */
+   *  If Job name is >CARBON_INDEX_SERVER_JOBNAME_LENGTH
+   *  then need to cut as transferring big query to IndexServer will be costly.
+   */
   public void setTaskGroupDesc(String taskGroupDesc) {
     int maxJobLenth;
     try {
       String maxJobLenthString = CarbonProperties.getInstance()
-              .getProperty(CarbonCommonConstants.CARBON_INDEX_SERVER_JOBNAME_LENGTH ,
-                      CarbonCommonConstants.CARBON_INDEX_SERVER_JOBNAME_LENGTH_DEFAULT);
+          .getProperty(CarbonCommonConstants.CARBON_INDEX_SERVER_JOBNAME_LENGTH,
+              CarbonCommonConstants.CARBON_INDEX_SERVER_JOBNAME_LENGTH_DEFAULT);
       maxJobLenth = Integer.parseInt(maxJobLenthString);
     } catch (Exception e) {
       String maxJobLenthString = CarbonProperties.getInstance()
-              .getProperty(CarbonCommonConstants.CARBON_INDEX_SERVER_JOBNAME_LENGTH_DEFAULT);
+          .getProperty(CarbonCommonConstants.CARBON_INDEX_SERVER_JOBNAME_LENGTH_DEFAULT);
       maxJobLenth = Integer.parseInt(maxJobLenthString);
     }
     if (taskGroupDesc.length() > maxJobLenth) {
@@ -391,4 +390,17 @@ public class DistributableDataMapFormat extends FileInputFormat<Void, ExtendedBl
   public void setFilterResolverIntf(FilterResolverIntf filterResolverIntf) {
     this.filterResolverIntf = filterResolverIntf;
   }
+
+  public String getQueryId() {
+    return queryId;
+  }
+
+  public void setQueryId(String queryId) {
+    this.queryId = queryId;
+  }
+
+  public List<String> getInvalidSegments() {
+    return invalidSegments;
+  }
+
 }

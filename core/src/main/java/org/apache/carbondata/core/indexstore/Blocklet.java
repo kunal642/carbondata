@@ -65,14 +65,13 @@ public class Blocklet implements Writable,Serializable {
     return filePath;
   }
 
+  public void setFilePath(String filePath) {
+    this.filePath = filePath;
+  }
+
   @Override
   public void write(DataOutput out) throws IOException {
-    if (filePath == null) {
-      out.writeBoolean(false);
-    } else {
-      out.writeBoolean(true);
-      out.writeUTF(filePath);
-    }
+    out.writeUTF(filePath);
     if (blockletId == null) {
       out.writeBoolean(false);
     } else {
@@ -83,9 +82,7 @@ public class Blocklet implements Writable,Serializable {
 
   @Override
   public void readFields(DataInput in) throws IOException {
-    if (in.readBoolean()) {
-      filePath = in.readUTF();
-    }
+    filePath = in.readUTF();
     if (in.readBoolean()) {
       blockletId = in.readUTF();
     }

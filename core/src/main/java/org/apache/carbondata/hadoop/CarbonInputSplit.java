@@ -16,7 +16,9 @@
  */
 package org.apache.carbondata.hadoop;
 
+import java.io.ByteArrayInputStream;
 import java.io.DataInput;
+import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.io.Serializable;
@@ -34,6 +36,7 @@ import org.apache.carbondata.core.datastore.block.BlockletInfos;
 import org.apache.carbondata.core.datastore.block.Distributable;
 import org.apache.carbondata.core.datastore.block.TableBlockInfo;
 import org.apache.carbondata.core.indexstore.BlockletDetailInfo;
+import org.apache.carbondata.core.indexstore.ExtendedByteArrayInputStream;
 import org.apache.carbondata.core.indexstore.blockletindex.BlockletDataMapRowIndexes;
 import org.apache.carbondata.core.indexstore.row.DataMapRow;
 import org.apache.carbondata.core.metadata.ColumnarFormatVersion;
@@ -42,6 +45,7 @@ import org.apache.carbondata.core.statusmanager.FileFormat;
 import org.apache.carbondata.core.util.BlockletDataMapUtil;
 import org.apache.carbondata.core.util.ByteUtil;
 import org.apache.carbondata.core.util.CarbonProperties;
+import org.apache.carbondata.core.util.CarbonUtil;
 import org.apache.carbondata.core.util.path.CarbonTablePath;
 import org.apache.carbondata.hadoop.internal.index.Block;
 
@@ -77,6 +81,7 @@ public class CarbonInputSplit extends FileSplit
    */
   private String[] deleteDeltaFiles;
 
+  // write block and blocklet details info
   private BlockletDetailInfo detailInfo;
 
   private FileFormat fileFormat = FileFormat.COLUMNAR_V3;
@@ -113,6 +118,9 @@ public class CarbonInputSplit extends FileSplit
   private transient Path path;
 
   private transient String blockPath;
+
+  private transient ExtendedByteArrayInputStream serializeDataStream;
+  private int rowCount = -1;
 
   public CarbonInputSplit() {
     segment = null;
@@ -240,6 +248,7 @@ public class CarbonInputSplit extends FileSplit
   }
 
   public String getSegmentId() {
+    deserializeField();
     if (segment != null) {
       return segment.getSegmentNo();
     } else {
@@ -248,16 +257,38 @@ public class CarbonInputSplit extends FileSplit
   }
 
   public Segment getSegment() {
+    deserializeField();
     return segment;
   }
 
-
+  public void deserializeField() {
+    if (null != serializeDataStream) {
+      DataInputStream dos = null;
+      try {
+        dos = new DataInputStream(serializeDataStream);
+        readFields(dos);
+        serializeDataStream = null;
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      } finally {
+        if (null != dos) {
+          CarbonUtil.closeStreams(dos);
+        }
+        if(null!=serializeDataStream) {
+          serializeDataStream = null;
+        }
+      }
+    }
+  }
   @Override public void readFields(DataInput in) throws IOException {
-    this.filePath = in.readUTF();
-    this.start = in.readLong();
-    this.length = in.readLong();
+    if (serializeDataStream == null) {
+      this.filePath = in.readUTF();
+      this.start = in.readLong();
+      this.length = in.readLong();
+      this.version = ColumnarFormatVersion.valueOf(in.readShort());
+      this.rowCount = in.readInt();
+    }
     this.segment = Segment.toSegment(in.readUTF());
-    this.version = ColumnarFormatVersion.valueOf(in.readShort());
     this.bucketId = in.readUTF();
     this.blockletId = in.readUTF();
     int numberOfDeleteDeltaFiles = in.readInt();
@@ -281,12 +312,65 @@ public class CarbonInputSplit extends FileSplit
     }
   }
 
+  public void serializeFields(DataOutput out) throws IOException {
+    if (null != location) {
+      out.writeBoolean(true);
+      out.writeInt(location.length);
+      for (String loc:location) {
+        out.writeUTF(loc);
+      }
+    } else {
+      out.writeBoolean(false);
+    }
+    out.writeInt(fileFormat.ordinal());
+    write(out);
+  }
+
+  public void deserializeFields(DataInput in) throws IOException {
+    if(in.readBoolean()) {
+      this.location = new String[in.readInt()];
+      for (int i = 0; i < location.length; i++) {
+        location[i] = in.readUTF();
+      }
+    }
+    if(null==location) {
+      location = new String[3];
+      location[0] = "linux-53";
+      location[1] = "linux-51";
+      location[2] = "linux-49";
+    }
+    this.fileFormat = FileFormat.getByOrdinal(in.readInt());
+    this.filePath = in.readUTF();
+    this.start = in.readLong();
+    this.length = in.readLong();
+    this.version = ColumnarFormatVersion.valueOf(in.readShort());
+    this.rowCount = in.readInt();
+  }
+
   @Override public void write(DataOutput out) throws IOException {
+    if (null != serializeDataStream) {
+      out.writeUTF(filePath);
+      out.writeLong(start);
+      out.writeLong(length);
+      out.writeShort(version.number());
+      out.writeInt(rowCount);
+      out.write(serializeDataStream.getBufferFromPosition());
+      return;
+    }
     out.writeUTF(filePath);
     out.writeLong(start);
     out.writeLong(length);
-    out.writeUTF(segment.toString());
     out.writeShort(version.number());
+    if(detailInfo!=null) {
+      out.writeInt(detailInfo.getRowCount());
+    } else if(dataMapRow!=null) {
+      out.writeInt(this.dataMapRow.getInt(BlockletDataMapRowIndexes.ROW_COUNT_INDEX));
+    } else if (rowCount == -1) {
+      out.writeInt(0);
+    } else {
+      out.writeInt(rowCount);
+    }
+    out.writeUTF(segment.toString());
     out.writeUTF(bucketId);
     out.writeUTF(blockletId);
     out.writeInt(null != deleteDeltaFiles ? deleteDeltaFiles.length : 0);
@@ -332,13 +416,18 @@ public class CarbonInputSplit extends FileSplit
     return bucketId;
   }
 
-  public String getBlockletId() { return blockletId; }
+  public String getBlockletId() {
+    deserializeField();
+    return blockletId;
+  }
 
   @Override public int compareTo(Distributable o) {
     if (o == null) {
       return -1;
     }
     CarbonInputSplit other = (CarbonInputSplit) o;
+    deserializeField();
+    other.deserializeField();
     int compareResult = 0;
     // get the segment id
     // converr seg ID to double.
@@ -400,6 +489,7 @@ public class CarbonInputSplit extends FileSplit
   }
 
   @Override public int hashCode() {
+    deserializeField();
     int result = taskId.hashCode();
     result = 31 * result + segment.hashCode();
     result = 31 * result + bucketId.hashCode();
@@ -478,6 +568,10 @@ public class CarbonInputSplit extends FileSplit
     this.dataMapRow = dataMapRow;
   }
 
+  public void setTaskId(String taskId) {
+    this.taskId = taskId;
+  }
+
   public void setColumnCardinality(int[] columnCardinality) {
     this.columnCardinality = columnCardinality;
   }
@@ -540,6 +634,7 @@ public class CarbonInputSplit extends FileSplit
   }
 
   public BlockletDetailInfo getDetailInfo() {
+    deserializeField();
     if (null != dataMapRow && detailInfo == null) {
       detailInfo = new BlockletDetailInfo();
       detailInfo
@@ -598,6 +693,18 @@ public class CarbonInputSplit extends FileSplit
     return this.filePath;
   }
 
+  public void setFilePath(String filePath) {
+    this.filePath = filePath;
+  }
+
+  public void setBucketId(String bucketId) {
+    this.bucketId = bucketId;
+  }
+
+  public void setBlockletId(String blockletId) {
+    this.blockletId = blockletId;
+  }
+
   /** The position of the first byte in the file to process. */
   public long getStart() { return start; }
 
@@ -628,5 +735,13 @@ public class CarbonInputSplit extends FileSplit
 
   public void setLocation(String[] location) {
     this.location = location;
+  }
+
+  public void setSerializeDataStream(ExtendedByteArrayInputStream serializeDataStream) {
+    this.serializeDataStream = serializeDataStream;
+  }
+
+  public int getRowCount() {
+    return this.rowCount;
   }
 }

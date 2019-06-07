@@ -618,7 +618,7 @@ public class CarbonTableInputFormat<T> extends CarbonInputFormat<T> {
             getDistributedSplit(table, null, partitions, filteredSegment,
                 allSegments.getInvalidSegments(), new ArrayList<String>()));
         for (InputSplit extendedBlocklet : extendedBlocklets) {
-          totalRowCount += ((CarbonInputSplit) extendedBlocklet).getDetailInfo().getRowCount();
+          totalRowCount += ((CarbonInputSplit) extendedBlocklet).getRowCount();
         }
       } else {
         TableDataMap defaultDataMap = DataMapStoreManager.getInstance().getDefaultDataMap(table);
