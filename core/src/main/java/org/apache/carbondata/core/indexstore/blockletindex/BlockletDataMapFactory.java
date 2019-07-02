@@ -173,7 +173,8 @@ public class BlockletDataMapFactory extends CoarseGrainDataMapFactory
         segmentMap.get(segment.getSegmentNo());
     if (tableBlockIndexUniqueIdentifiers == null) {
       tableBlockIndexUniqueIdentifiers =
-          BlockletDataMapUtil.getTableBlockUniqueIdentifiers(segment);
+          BlockletDataMapUtil.getTableBlockUniqueIdentifiers(this.getCarbonTable().getTableId(),
+              segment);
       if (tableBlockIndexUniqueIdentifiers.size() > 0) {
         segmentMap.put(segment.getSegmentNo(), tableBlockIndexUniqueIdentifiers);
       }
@@ -364,7 +365,8 @@ public class BlockletDataMapFactory extends CoarseGrainDataMapFactory
         }
         String parentPath = carbonFile.getParentFile().getAbsolutePath();
         TableBlockIndexUniqueIdentifier tableBlockIndexUniqueIdentifier =
-            new TableBlockIndexUniqueIdentifier(parentPath, indexFileName, mergeIndexName,
+            new TableBlockIndexUniqueIdentifier(this.getCarbonTable().getTableId(), parentPath,
+                indexFileName, mergeIndexName,
                 distributable.getSegment().getSegmentNo());
         identifiersWrapper.add(
             new TableBlockIndexUniqueIdentifierWrapper(tableBlockIndexUniqueIdentifier,
@@ -390,7 +392,8 @@ public class BlockletDataMapFactory extends CoarseGrainDataMapFactory
     if (indexPath.getName().endsWith(CarbonTablePath.INDEX_FILE_EXT)) {
       String parent = indexPath.getParent().toString();
       identifiersWrapper.add(new TableBlockIndexUniqueIdentifierWrapper(
-          new TableBlockIndexUniqueIdentifier(parent, indexPath.getName(), null, segmentId),
+          new TableBlockIndexUniqueIdentifier(this.getCarbonTable().getTableId(), parent,
+              indexPath.getName(), null, segmentId),
           this.getCarbonTable()));
     } else if (indexPath.getName().endsWith(CarbonTablePath.MERGE_INDEX_FILE_EXT)) {
       SegmentIndexFileStore fileStore = new SegmentIndexFileStore();
@@ -399,7 +402,8 @@ public class BlockletDataMapFactory extends CoarseGrainDataMapFactory
       List<String> indexFiles = fileStore.getIndexFilesFromMergeFile(carbonFile.getAbsolutePath());
       for (String indexFile : indexFiles) {
         identifiersWrapper.add(new TableBlockIndexUniqueIdentifierWrapper(
-            new TableBlockIndexUniqueIdentifier(parentPath, indexFile, carbonFile.getName(),
+            new TableBlockIndexUniqueIdentifier(this.getCarbonTable().getTableId(), parentPath,
+                indexFile, carbonFile.getName(),
                 segmentId), this.getCarbonTable()));
       }
     }

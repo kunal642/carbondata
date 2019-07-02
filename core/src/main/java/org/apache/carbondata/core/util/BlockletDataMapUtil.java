@@ -181,14 +181,16 @@ public class BlockletDataMapUtil {
     }
   }
 
-  public static Set<TableBlockIndexUniqueIdentifier> getTableBlockUniqueIdentifiers(Segment segment)
+  public static Set<TableBlockIndexUniqueIdentifier> getTableBlockUniqueIdentifiers(
+      String tableUniqueId, Segment segment)
       throws IOException {
     Set<TableBlockIndexUniqueIdentifier> tableBlockIndexUniqueIdentifiers = new HashSet<>();
     Map<String, String> indexFiles = segment.getCommittedIndexFile();
     for (Map.Entry<String, String> indexFileEntry : indexFiles.entrySet()) {
       Path indexFile = new Path(indexFileEntry.getKey());
       tableBlockIndexUniqueIdentifiers.add(
-          new TableBlockIndexUniqueIdentifier(indexFile.getParent().toString(), indexFile.getName(),
+          new TableBlockIndexUniqueIdentifier(tableUniqueId, indexFile.getParent().toString(),
+              indexFile.getName(),
               indexFileEntry.getValue(), segment.getSegmentNo()));
     }
     return tableBlockIndexUniqueIdentifiers;
@@ -236,7 +238,9 @@ public class BlockletDataMapUtil {
         segmentIndexFileStore.getCarbonMergeFileToIndexFilesMap().get(mergeFilePath);
     for (String indexFile : indexFiles) {
       tableBlockIndexUniqueIdentifiers.add(
-          new TableBlockIndexUniqueIdentifier(identifier.getIndexFilePath(), indexFile,
+          new TableBlockIndexUniqueIdentifier(identifier.getTableUniqueId(),
+              identifier.getIndexFilePath(),
+              indexFile,
               identifier.getIndexFileName(), identifier.getSegmentId()));
     }
     return tableBlockIndexUniqueIdentifiers;

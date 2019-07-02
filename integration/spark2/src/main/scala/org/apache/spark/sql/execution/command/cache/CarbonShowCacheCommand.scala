@@ -399,7 +399,7 @@ case class CarbonShowCacheCommand(tableIdentifier: Option[TableIdentifier],
         cacheable match {
           case _: BlockletDataMapIndexWrapper =>
             allIndexSize += cacheable.getMemorySize
-            if (tablePaths.exists { path => key.startsWith(path) }) {
+            if (tablePaths.exists { path => key.endsWith(path) }) {
               dbIndexSize += cacheable.getMemorySize
             }
           case _: AbstractColumnDictionaryInfo =>
