@@ -20,6 +20,7 @@ package org.apache.carbondata.hive;
 import java.util.Map;
 
 import org.apache.carbondata.core.datastore.impl.FileFactory;
+import org.apache.carbondata.hive.util.HiveCarbonUtil;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
@@ -59,7 +60,7 @@ public class CarbonStorageHandler implements HiveStorageHandler {
 
   @Override
   public HiveMetaHook getMetaHook() {
-    return null;
+    return HiveCarbonUtil.getMetaHook();
   }
 
   @Override

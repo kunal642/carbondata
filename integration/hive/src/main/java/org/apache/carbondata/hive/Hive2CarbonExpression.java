@@ -93,7 +93,6 @@ public class Hive2CarbonExpression {
         Expression rightExpression =
             convertExprHive2Carbon(exprNodeGenericFuncDesc.getChildren().get(right));
         return new AndExpression(leftExpression, rightExpression);
-
       } else if (udf instanceof GenericUDFOPEqual) {
         ColumnExpression columnExpression = null;
         if (l1.get(left) instanceof ExprNodeFieldDesc) {

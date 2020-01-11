@@ -68,8 +68,7 @@ public class HiveCarbonUtil {
   private static final Logger LOGGER =
       LogServiceFactory.getLogService(HiveCarbonUtil.class.getName());
 
-  public static CarbonLoadModel getCarbonLoadModel(Configuration tableProperties)
-      throws IOException {
+  public static CarbonLoadModel getCarbonLoadModel(Configuration tableProperties) {
     String[] tableUniqueName = tableProperties.get("name").split("\\.");
     String databaseName = tableUniqueName[0];
     String tableName = tableUniqueName[1];
@@ -97,7 +96,7 @@ public class HiveCarbonUtil {
   }
 
   public static CarbonLoadModel getCarbonLoadModel(Properties tableProperties,
-      Configuration configuration) throws IOException {
+      Configuration configuration) {
     String[] tableUniqueName = tableProperties.getProperty("name").split("\\.");
     String databaseName = tableUniqueName[0];
     String tableName = tableUniqueName[1];
@@ -117,7 +116,7 @@ public class HiveCarbonUtil {
 
   public static CarbonLoadModel getCarbonLoadModel(String tableName, String databaseName,
       String location, String sortColumnsString, String[] columns, String[] columnTypes,
-      Configuration configuration) throws IOException {
+      Configuration configuration) {
     CarbonLoadModel loadModel;
     CarbonTable carbonTable;
     try {
@@ -146,7 +145,7 @@ public class HiveCarbonUtil {
     options.put("fileheader", Strings.mkString(columns, ","));
     try {
       loadModel = carbonLoadModelBuilder.build(options, System.currentTimeMillis(), "");
-    } catch (InvalidLoadOptionException e) {
+    } catch (InvalidLoadOptionException | IOException e) {
       throw new RuntimeException(e);
     }
     loadModel.setSkipParsers();
@@ -312,4 +311,5 @@ public class HiveCarbonUtil {
     }
     return tokens.toArray(new String[tokens.size()]);
   }
+
 }

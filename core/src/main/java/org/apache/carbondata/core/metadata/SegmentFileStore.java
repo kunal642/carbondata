@@ -1250,7 +1250,7 @@ public class SegmentFileStore {
      */
     private String segmentMetaDataInfo;
 
-    SegmentFile() {
+    public SegmentFile() {
       locationMap = new HashMap<>();
     }
 

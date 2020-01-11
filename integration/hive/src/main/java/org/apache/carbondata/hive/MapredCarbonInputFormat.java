@@ -94,8 +94,9 @@ public class MapredCarbonInputFormat extends CarbonTableInputFormat<ArrayWritabl
       // persisted in the schema
       CarbonTable carbonTable;
       AbsoluteTableIdentifier absoluteTableIdentifier = AbsoluteTableIdentifier
-          .from(validInputPath, getDatabaseName(configuration), getTableName(configuration));
-      String schemaPath = CarbonTablePath.getSchemaFilePath(validInputPath);
+          .from(configuration.get("location"), getDatabaseName(configuration), getTableName(configuration));
+      String schemaPath = CarbonTablePath
+          .getSchemaFilePath(configuration.get("location", ""));
       if (FileFactory.getCarbonFile(schemaPath).exists()) {
         // read the schema file to get the absoluteTableIdentifier having the correct table id
         // persisted in the schema

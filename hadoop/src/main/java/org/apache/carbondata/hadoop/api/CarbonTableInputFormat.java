@@ -354,7 +354,6 @@ public class CarbonTableInputFormat<T> extends CarbonInputFormat<T> {
   private List<InputSplit> getSplits(JobContext job, IndexFilter expression,
       List<Segment> validSegments, SegmentUpdateStatusManager updateStatusManager,
       List<Segment> invalidSegments) throws IOException {
-
     List<String> segmentsToBeRefreshed = new ArrayList<>();
     if (!CarbonProperties.getInstance()
         .isDistributedPruningEnabled(carbonTable.getDatabaseName(), carbonTable.getTableName())) {
