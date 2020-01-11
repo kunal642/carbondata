@@ -18,12 +18,20 @@
 package org.apache.carbondata.hive;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.carbondata.common.logging.LogServiceFactory;
+import org.apache.carbondata.core.datastore.impl.FileFactory;
 import org.apache.carbondata.core.metadata.SegmentFileStore;
+import org.apache.carbondata.core.util.ObjectSerializationUtil;
 import org.apache.carbondata.core.util.ThreadLocalSessionInfo;
+import org.apache.carbondata.core.util.path.CarbonTablePath;
 import org.apache.carbondata.hadoop.api.CarbonOutputCommitter;
 import org.apache.carbondata.hadoop.api.CarbonTableOutputFormat;
 import org.apache.carbondata.hive.util.HiveCarbonUtil;
@@ -107,6 +115,38 @@ public class MapredCarbonOutputCommitter extends OutputCommitter {
       Configuration configuration = jobContext.getConfiguration();
       CarbonLoadModel carbonLoadModel = MapredCarbonOutputFormat.getLoadModel(configuration);
       ThreadLocalSessionInfo.unsetAll();
+      List<String> partitionInfo = carbonLoadModel.getMetrics().getPartitionPath();
+      if (partitionInfo != null) {
+        List<String> outputPaths = (List<String>) ObjectSerializationUtil
+            .convertStringToObject(configuration.get("carbon.output.files.name"));
+        SegmentFileStore.FolderDetails finalFolderDetails = new SegmentFileStore.FolderDetails();
+        SegmentFileStore.SegmentFile finalSegmentFile = new SegmentFileStore.SegmentFile();
+        for (final String partitionPath : partitionInfo) {
+          Set<String> outputPath = outputPaths.stream()
+              .filter(x -> x.startsWith(partitionPath) && x.contains(".carbonindex"))
+              .map(x -> x.substring(partitionPath.length() + 1).split(":")[0])
+              .collect(Collectors.toSet());
+          SegmentFileStore.FolderDetails folderDetails = new SegmentFileStore.FolderDetails();
+          folderDetails.setFiles(outputPath);
+          folderDetails.setStatus("Success");
+          List<String> partitions = new ArrayList<>();
+          String newPartitionPath = partitionPath.substring(
+              carbonLoadModel.getCarbonDataLoadSchema().getCarbonTable().getTablePath().length());
+          partitions.addAll(Arrays.asList(newPartitionPath.split("/")));
+          folderDetails.setPartitions(partitions);
+          folderDetails.setRelative(true);
+          finalFolderDetails.merge(folderDetails);
+          finalSegmentFile.merge(SegmentFileStore.createSegmentFile(newPartitionPath, folderDetails));
+        }
+        String segmentFilesLocation = FileFactory
+            .getCarbonFile(CarbonTablePath.getSegmentFilesLocation(carbonLoadModel.getTablePath()))
+            .getAbsolutePath();
+        FileFactory.mkdirs(segmentFilesLocation);
+        String segmentFileName = SegmentFileStore.genSegmentFileName(carbonLoadModel.getSegmentId(),
+            String.valueOf(carbonLoadModel.getFactTimeStamp())) + CarbonTablePath.SEGMENT_EXT;
+        SegmentFileStore
+            .writeSegmentFile(finalSegmentFile, segmentFilesLocation + "/" + segmentFileName);
+      }
       SegmentFileStore.writeSegmentFile(carbonLoadModel.getCarbonDataLoadSchema().getCarbonTable(),
           carbonLoadModel.getSegmentId(), String.valueOf(carbonLoadModel.getFactTimeStamp()));
       SegmentFileStore

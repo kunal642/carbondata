@@ -95,6 +95,22 @@ public class HiveCarbonTest extends HiveTestUtils {
     checkAnswer(carbonResult, hiveResult);
   }
 
+  @Test
+  public void testForPartitionTables() throws Exception {
+    statement.execute("drop table if exists hive_table_partition");
+    statement.execute("drop table if exists hive_carbon_partition");
+    statement.execute("CREATE TABLE hive_table_partition( shortField SMALLINT, intField INT, bigintField BIGINT , doubleField DOUBLE, stringField STRING, timestampField TIMESTAMP, decimalField DECIMAL(18,2), dateField DATE, charField CHAR(5)) partitioned by (floatField float) ROW FORMAT DELIMITED FIELDS TERMINATED BY ','");
+    statement.execute("insert into hive_table_partition partition(floatField) select * from hive_table");
+    statement.execute(
+        "CREATE TABLE hive_carbon_partition( shortField SMALLINT , intField INT, bigintField BIGINT , "
+            + "doubleField DOUBLE, stringField STRING, timestampField TIMESTAMP, decimalField DECIMAL(18,2), "
+            + "dateField DATE, charField CHAR(5)) partitioned by (floatField float) stored by 'org.apache.carbondata.hive.CarbonStorageHandler' ");
+    statement.execute("insert into hive_carbon_partition PARTITION(floatField) select * from hive_table ");
+    statement.execute("MSCK REPAIR TABLE hive_carbon_partition");
+    checkAnswer(connection.createStatement().executeQuery("select * from hive_carbon_partition where floatField='2.5'"),
+        connection.createStatement().executeQuery("select * from hive_table_partition where floatField='2.5'"));
+  }
+
   @AfterClass
   public static void tearDown() {
     try {

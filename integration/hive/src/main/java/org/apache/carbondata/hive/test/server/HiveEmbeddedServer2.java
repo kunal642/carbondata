@@ -64,6 +64,7 @@ public class HiveEmbeddedServer2 {
       port = findFreePort();
       config.setIntVar(ConfVars.HIVE_SERVER2_THRIFT_PORT, port);
       config.set(FileInputFormat.INPUT_DIR_RECURSIVE, "true");
+      config.setVar(ConfVars.DYNAMICPARTITIONINGMODE, "nonstrict");
       hiveServer.init(config);
       hiveServer.start();
       waitForStartup();
