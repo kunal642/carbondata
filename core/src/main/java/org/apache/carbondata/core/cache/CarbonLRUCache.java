@@ -18,15 +18,17 @@
 package org.apache.carbondata.core.cache;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.carbondata.common.logging.LogServiceFactory;
 import org.apache.carbondata.core.constants.CarbonCommonConstants;
 import org.apache.carbondata.core.util.CarbonProperties;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import org.apache.log4j.Logger;
 
 /**
@@ -43,10 +45,11 @@ public final class CarbonLRUCache {
   private static final Logger LOGGER =
       LogServiceFactory.getLogService(CarbonLRUCache.class.getName());
   /**
-   * Map that will contain key as table unique name and value as cache Holder
+   * Guava cache that holds key as table unique name and value as cache Holder
    * object
    */
-  private Map<String, Cacheable> lruCacheMap;
+  private Cache<String, Cacheable> lruCacheMap;
+
   /**
    * lruCacheSize
    */
@@ -95,9 +98,17 @@ public final class CarbonLRUCache {
    * initialize lru cache
    */
   private void initCache() {
+    // get duration for cache expiration if configured
+    long duration = CarbonCommonConstants.CARBON_LRU_CACHE_EXPIRATION_DURATION_IN_MINUTES_DEFAULT;
+    String timeBasedExpiration = CarbonProperties.getInstance()
+        .getProperty(CarbonCommonConstants.CARBON_LRU_CACHE_EXPIRATION_DURATION_IN_MINUTES);
+    if (null != timeBasedExpiration) {
+      duration = Long.parseLong(timeBasedExpiration);
+    }
+    // initialise guava cache with time based expiration
     lruCacheMap =
-        new LinkedHashMap<String, Cacheable>(CarbonCommonConstants.DEFAULT_COLLECTION_SIZE, 1.0f,
-            true);
+        CacheBuilder.newBuilder().initialCapacity(CarbonCommonConstants.DEFAULT_COLLECTION_SIZE)
+            .expireAfterWrite(duration, TimeUnit.MINUTES).build();
   }
 
   /**
@@ -108,7 +119,7 @@ public final class CarbonLRUCache {
     List<String> toBeDeletedKeys =
         new ArrayList<String>(CarbonCommonConstants.DEFAULT_COLLECTION_SIZE);
     long removedSize = 0;
-    for (Entry<String, Cacheable> entry : lruCacheMap.entrySet()) {
+    for (Entry<String, Cacheable> entry : lruCacheMap.asMap().entrySet()) {
       String key = entry.getKey();
       Cacheable cacheInfo = entry.getValue();
       long memorySize = cacheInfo.getMemorySize();
@@ -178,11 +189,11 @@ public final class CarbonLRUCache {
    * @param key
    */
   private void removeKey(String key) {
-    Cacheable cacheable = lruCacheMap.get(key);
+    Cacheable cacheable = lruCacheMap.getIfPresent(key);
     if (null != cacheable) {
       long memorySize = cacheable.getMemorySize();
       cacheable.invalidate();
-      lruCacheMap.remove(key);
+      lruCacheMap.invalidate(key);
       currentSize = currentSize - memorySize;
       LOGGER.info("Removed entry from InMemory lru cache :: " + key);
     }
@@ -225,42 +236,13 @@ public final class CarbonLRUCache {
   }
 
   /**
-   * This method will check if required size is available in the memory
-   * @param columnIdentifier
-   * @param requiredSize
-   * @return
-   */
-  public boolean tryPut(String columnIdentifier, long requiredSize) {
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("checking Required size for entry " + columnIdentifier + " :: " + requiredSize
-          + " Current cache size :: " + currentSize);
-    }
-    boolean columnKeyCanBeAdded = false;
-    if (isLRUCacheSizeConfigured()) {
-      synchronized (lruCacheMap) {
-        if (freeMemorySizeForAddingCache(requiredSize)) {
-          columnKeyCanBeAdded = true;
-        } else {
-          LOGGER.error(
-              "Size check failed.Size not available. Entry cannot be added to lru cache :: "
-                  + columnIdentifier + " .Required Size = " + requiredSize + " Size available " + (
-                  lruCacheMemorySize - currentSize));
-        }
-      }
-    } else {
-      columnKeyCanBeAdded = true;
-    }
-    return columnKeyCanBeAdded;
-  }
-
-  /**
    * The method will add the cache entry to LRU cache map
    *
    * @param columnIdentifier
    * @param cacheInfo
    */
   private void addEntryToLRUCacheMap(String columnIdentifier, Cacheable cacheInfo) {
-    if (null == lruCacheMap.get(columnIdentifier)) {
+    if (null == lruCacheMap.asMap().get(columnIdentifier)) {
       lruCacheMap.put(columnIdentifier, cacheInfo);
     }
     if (LOGGER.isDebugEnabled()) {
@@ -318,7 +300,7 @@ public final class CarbonLRUCache {
    */
   public Cacheable get(String key) {
     synchronized (lruCacheMap) {
-      return lruCacheMap.get(key);
+      return lruCacheMap.getIfPresent(key);
     }
   }
 
@@ -327,15 +309,15 @@ public final class CarbonLRUCache {
    */
   public void clear() {
     synchronized (lruCacheMap) {
-      for (Cacheable cachebleObj : lruCacheMap.values()) {
+      for (Cacheable cachebleObj : lruCacheMap.asMap().values()) {
         cachebleObj.invalidate();
       }
-      lruCacheMap.clear();
+      lruCacheMap.cleanUp();
     }
   }
 
   public Map<String, Cacheable> getCacheMap() {
-    return lruCacheMap;
+    return lruCacheMap.asMap();
   }
 
   /**
