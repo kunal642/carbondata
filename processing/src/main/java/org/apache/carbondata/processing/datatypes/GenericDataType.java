@@ -55,17 +55,17 @@ public interface GenericDataType<T> {
   void getAllPrimitiveChildren(List<GenericDataType> primitiveChild);
 
   /**
+   * @return surrogateIndex for primitive column in complex type
+   */
+  int getSurrogateIndex();
+
+  /**
    * writes to byte stream
    * @param dataOutputStream
    * @throws IOException
    */
   void writeByteArray(T input, DataOutputStream dataOutputStream, BadRecordLogHolder logHolder)
-      throws IOException;
-
-  /**
-   * @return surrogateIndex for primitive column in complex type
-   */
-  int getSurrogateIndex();
+  throws IOException;
 
   /**
    * @param surrIndex - surrogate index of primitive column in complex type

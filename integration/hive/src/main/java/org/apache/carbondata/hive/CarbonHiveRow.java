@@ -15,23 +15,38 @@
  * limitations under the License.
  */
 
-package org.apache.carbondata.processing.loading.parser;
+package org.apache.carbondata.hive;
 
-/**
- * Parse the data according to implementation, The implementation classes can be struct, array or
- * map datatypes.
- * It remains thread safe as the state of implementation class should not change while
- * calling @{@link GenericParser#parse(Object)} method
- */
-public interface GenericParser<E> {
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-  /**
-   * Parse the data as per the delimiter
-   * @param data
-   * @return
-   */
-  E parse(Object data);
+import org.apache.hadoop.io.Writable;
 
-  E parseRaw(Object data);
+public class CarbonHiveRow implements Writable {
 
+  private List<Object> rawRow = new ArrayList();
+
+  CarbonHiveRow() {
+  }
+
+  public void addToRow(Object object) {
+    rawRow.add(object);
+  }
+
+  public Object[] getData() {
+    return rawRow.toArray();
+  }
+
+  @Override
+  public void write(DataOutput dataOutput) throws IOException {
+
+  }
+
+  @Override
+  public void readFields(DataInput dataInput) throws IOException {
+
+  }
 }

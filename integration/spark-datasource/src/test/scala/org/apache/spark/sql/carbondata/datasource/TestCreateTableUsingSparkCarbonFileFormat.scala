@@ -31,9 +31,9 @@ import org.apache.spark.sql.carbondata.datasource.TestUtil.{spark, _}
 
 import org.apache.carbondata.core.datastore.filesystem.CarbonFile
 import org.apache.carbondata.core.datastore.impl.FileFactory
-import org.apache.carbondata.core.metadata.datatype.DataTypes
+import org.apache.carbondata.core.metadata.datatype.{DataTypes, Field}
 import org.apache.carbondata.core.util.{CarbonProperties, CarbonUtil, DataFileFooterConverter}
-import org.apache.carbondata.sdk.file.{CarbonWriter, Field, Schema}
+import org.apache.carbondata.sdk.file.{CarbonWriter, Schema}
 import org.apache.spark.sql.Row
 
 import org.apache.carbondata.core.constants.CarbonCommonConstants
