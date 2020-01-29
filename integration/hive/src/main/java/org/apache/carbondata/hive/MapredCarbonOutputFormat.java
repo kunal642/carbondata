@@ -18,39 +18,45 @@
 package org.apache.carbondata.hive;
 
 import java.io.IOException;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.carbondata.core.constants.CarbonCommonConstants;
 import org.apache.carbondata.core.datastore.compression.CompressorFactory;
-import org.apache.carbondata.core.datastore.impl.FileFactory;
-import org.apache.carbondata.core.metadata.SegmentFileStore;
+import org.apache.carbondata.core.metadata.datatype.StructField;
+import org.apache.carbondata.core.metadata.schema.PartitionInfo;
+import org.apache.carbondata.core.metadata.schema.SchemaEvolution;
+import org.apache.carbondata.core.metadata.schema.SchemaEvolutionEntry;
 import org.apache.carbondata.core.metadata.schema.table.CarbonTable;
+import org.apache.carbondata.core.metadata.schema.table.TableInfo;
+import org.apache.carbondata.core.metadata.schema.table.TableSchema;
+import org.apache.carbondata.core.metadata.schema.table.TableSchemaBuilder;
+import org.apache.carbondata.core.metadata.schema.table.column.ColumnSchema;
 import org.apache.carbondata.hadoop.api.CarbonTableOutputFormat;
 import org.apache.carbondata.hadoop.internal.ObjectArrayWritable;
+import org.apache.carbondata.hive.util.DataTypeUtil;
 import org.apache.carbondata.processing.loading.constants.DataLoadProcessorConstants;
 import org.apache.carbondata.processing.loading.model.CarbonDataLoadSchema;
 import org.apache.carbondata.processing.loading.model.CarbonLoadModel;
 import org.apache.carbondata.processing.loading.model.CarbonLoadModelBuilder;
 import org.apache.carbondata.processing.util.TableOptionConstant;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
 import org.apache.hadoop.hive.ql.io.HiveOutputFormat;
-import org.apache.hadoop.hive.serde2.SerDeException;
-import org.apache.hadoop.hive.serde2.SerDeUtils;
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.hadoop.mapred.RecordWriter;
-import org.apache.hadoop.mapreduce.JobID;
-import org.apache.hadoop.mapreduce.JobStatus;
-import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
-import org.apache.hadoop.mapreduce.task.JobContextImpl;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
 import org.apache.hadoop.util.Progressable;
 
@@ -71,6 +77,94 @@ public class MapredCarbonOutputFormat<T> extends CarbonTableOutputFormat
       throws IOException {
   }
 
+  private TableInfo getTableInfo(Properties tableProperties) throws SQLException {
+    TableInfo tableInfo = new TableInfo();
+    TableSchemaBuilder builder = new TableSchemaBuilder();
+    String[] tableIdentifier = tableProperties.getProperty("name").split("\\.");
+    builder.tableName(tableIdentifier[1]);
+    tableInfo.setDatabaseName(tableIdentifier[0]);
+    String[] columns = tableProperties.getProperty("columns").split(",");
+    String[] column_types = tableProperties.getProperty("columns.types").split(":");
+    String sortColumnsString = tableProperties.getProperty("sort_columns");
+    List<String> sortColumns = new ArrayList<>();
+    if (sortColumnsString != null) {
+      sortColumns =
+          Arrays.asList(sortColumnsString.toLowerCase().split("\\,"));
+    }
+    List<String> partitionColumns = new ArrayList<>();
+    //    for (FieldSchema fieldSchema : table.getPartitionKeys()) {
+    //      partitionColumns.add(fieldSchema.getName());
+    //    }
+    PartitionInfo partitionInfo = null;
+    AtomicInteger integer = new AtomicInteger();
+    for (int i = 0; i < columns.length; i++) {
+      ColumnSchema col = builder.addColumn(new StructField(columns[i].toLowerCase(),
+              DataTypeUtil.convertHiveTypeToCarbon(column_types[i])),
+          integer, sortColumns.contains(columns[i]), false);
+      if (partitionColumns.contains(col.getColumnName())) {
+        if (partitionInfo == null) {
+          partitionInfo = new PartitionInfo();
+        }
+        partitionInfo.addColumnSchema(col);
+      }
+    }
+    TableSchema tableSchema = builder.build();
+    SchemaEvolution schemaEvol = new SchemaEvolution();
+    List<SchemaEvolutionEntry> schemaEvolutionEntry = new ArrayList<>();
+    schemaEvolutionEntry.add(new SchemaEvolutionEntry());
+    schemaEvol.setSchemaEvolutionEntryList(schemaEvolutionEntry);
+    tableSchema.setSchemaEvolution(schemaEvol);
+    for (Map.Entry<Object, Object> entry : tableProperties.entrySet()) {
+      tableSchema.getTableProperties()
+          .put(entry.getKey().toString().toLowerCase(), entry.getValue().toString().toLowerCase());
+    }
+    tableSchema.setPartitionInfo(partitionInfo);
+    tableInfo.setTablePath(tableProperties.getProperty("location"));
+    tableInfo.setTransactionalTable(false);
+    tableInfo.setFactTable(tableSchema);
+    return tableInfo;
+  }
+
+  private CarbonLoadModel createCarbonLoadModel1(Properties tableProperties) throws IOException {
+    CarbonLoadModel loadModel = new CarbonLoadModel();
+    String[] tableUniqueName = tableProperties.get("name").toString().split("\\.");
+    String databaseName = tableUniqueName[0];
+    String tableName = tableUniqueName[1];
+    String tablePath = tableProperties.get("location").toString();
+    loadModel.setTablePath(tablePath);
+    loadModel.setDatabaseName(databaseName);
+    loadModel.setTableName(tableName);
+    loadModel.setSerializationNullFormat(",\\N");
+    loadModel.setBadRecordsLoggerEnable(
+        TableOptionConstant.BAD_RECORDS_LOGGER_ENABLE.getName() + ",false");
+    loadModel.setBadRecordsAction(
+        TableOptionConstant.BAD_RECORDS_ACTION.getName() + ",force");
+    loadModel.setIsEmptyDataBadRecord(
+        DataLoadProcessorConstants.IS_EMPTY_DATA_BAD_RECORD + ",false");
+    loadModel.setCsvHeader(tableProperties.get("columns").toString());
+    loadModel.setCsvHeaderColumns(tableProperties.get("columns").toString().split(","));
+    CarbonTable carbonTable = null;
+    try {
+      carbonTable = CarbonTable.buildFromTableInfo(getTableInfo(tableProperties));
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+    String globalSortPartitions = carbonTable.getTableInfo().getFactTable().getTableProperties()
+        .get("global_sort_partitions");
+    if (globalSortPartitions != null) {
+      loadModel.setGlobalSortPartitions(globalSortPartitions);
+    }
+    String columnCompressor = carbonTable.getTableInfo().getFactTable().getTableProperties().get(
+        CarbonCommonConstants.COMPRESSOR);
+    if (null == columnCompressor) {
+      columnCompressor = CompressorFactory.getInstance().getCompressor().getName();
+    }
+    loadModel.setColumnCompressor(columnCompressor);
+    loadModel.setCarbonDataLoadSchema(new CarbonDataLoadSchema(carbonTable));
+    loadModel.setCarbonTransactionalTable(false);
+    return loadModel;
+  }
+
   private CarbonLoadModel createCarbonLoadModel(Properties tableProperties) throws IOException {
     String[] tableUniqueName = tableProperties.get("name").toString().split("\\.");
     String databaseName = tableUniqueName[0];
@@ -80,9 +174,11 @@ public class MapredCarbonOutputFormat<T> extends CarbonTableOutputFormat
         CarbonTable.buildFromTablePath(tableName, databaseName, tablePath, "");
     CarbonLoadModelBuilder carbonLoadModelBuilder = new CarbonLoadModelBuilder(carbonTable);
     try {
-      return carbonLoadModelBuilder
+      CarbonLoadModel carbonLoadModel = carbonLoadModelBuilder
           .build(carbonTable.getTableInfo().getFactTable().getTableProperties(),
               System.currentTimeMillis(), "1");
+      carbonLoadModel.setCarbonTransactionalTable(false);
+      return carbonLoadModel;
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -92,15 +188,12 @@ public class MapredCarbonOutputFormat<T> extends CarbonTableOutputFormat
   public FileSinkOperator.RecordWriter getHiveRecordWriter(JobConf jc, Path finalOutPath,
       Class<? extends Writable> valueClass, boolean isCompressed, Properties tableProperties,
       Progressable progress) throws IOException {
-    CarbonLoadModel carbonLoadModel = createCarbonLoadModel(tableProperties);
+    CarbonLoadModel carbonLoadModel = createCarbonLoadModel1(tableProperties);
     CarbonTableOutputFormat.setLoadModel(jc, carbonLoadModel);
     TaskAttemptID taskAttemptID = TaskAttemptID.forName(jc.get("mapred.task.id"));
     TaskAttemptContextImpl context = new TaskAttemptContextImpl(jc, taskAttemptID);
-    OutputCommitter carbonOutputCommitter = super.getOutputCommitter(context);
-    JobContextImpl jobContext = new JobContextImpl(jc, new JobID());
-    carbonOutputCommitter.setupJob(jobContext);
-    CarbonLoadModel updatedCarbonLoadModel = CarbonTableOutputFormat.getLoadModel(jc);
-    org.apache.hadoop.mapreduce.RecordWriter re =  super.getRecordWriter(context);
+    org.apache.hadoop.mapreduce.RecordWriter<NullWritable, ObjectArrayWritable> re =
+        super.getRecordWriter(context);
     return new FileSinkOperator.RecordWriter() {
       @Override
       public void write(Writable writable) throws IOException {
@@ -108,8 +201,6 @@ public class MapredCarbonOutputFormat<T> extends CarbonTableOutputFormat
           ObjectArrayWritable objectArrayWritable = new ObjectArrayWritable();
           objectArrayWritable.set(((ArrayWritable) writable).toStrings());
           re.write(NullWritable.get(), objectArrayWritable);
-          FileFactory.mkdirs(finalOutPath.getParent().toString());
-          FileFactory.createNewFile(finalOutPath.toString());
         } catch (InterruptedException e) {
           throw new IOException(e.getCause());
         }
@@ -119,15 +210,6 @@ public class MapredCarbonOutputFormat<T> extends CarbonTableOutputFormat
       public void close(boolean b) throws IOException {
         try {
           re.close(context);
-          if (b) {
-            carbonOutputCommitter.abortJob(jobContext, JobStatus.State.FAILED);
-          } else {
-            SegmentFileStore
-                .writeSegmentFile(updatedCarbonLoadModel.getCarbonDataLoadSchema().getCarbonTable(),
-                    updatedCarbonLoadModel.getSegmentId(),
-                    String.valueOf(updatedCarbonLoadModel.getFactTimeStamp()));
-            carbonOutputCommitter.commitJob(jobContext);
-          }
         } catch (InterruptedException e) {
           throw new IOException(e.getCause());
         }

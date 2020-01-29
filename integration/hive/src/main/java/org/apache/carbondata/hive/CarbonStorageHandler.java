@@ -94,12 +94,12 @@ public class CarbonStorageHandler implements HiveStorageHandler {
 
       @Override
       public void commitCreateTable(Table table) throws MetaException {
-        try {
-          writeSchemaFile(getTableInfo(table));
-        } catch (IOException | SQLException e) {
-          LOGGER.error(e);
-          throw new MetaException("Problem while writing schema file: " + e.getMessage());
-        }
+//        try {
+//          writeSchemaFile(getTableInfo(table));
+//        } catch (IOException | SQLException e) {
+//          LOGGER.error(e);
+//          throw new MetaException("Problem while writing schema file: " + e.getMessage());
+//        }
       }
 
       private TableInfo getTableInfo(Table table) throws SQLException {
