@@ -35,7 +35,7 @@ import org.apache.spark.sql.util.SparkSQLUtil
 import org.apache.carbondata.common.exceptions.sql.MalformedCarbonCommandException
 import org.apache.carbondata.common.logging.LogServiceFactory
 import org.apache.carbondata.core.constants.CarbonCommonConstants
-import org.apache.carbondata.core.datastore.filesystem.CarbonFile
+import org.apache.carbondata.core.datastore.filesystem.{AbstractDFSCarbonFile, CarbonFile}
 import org.apache.carbondata.core.datastore.impl.FileFactory
 import org.apache.carbondata.core.locks.{CarbonLockFactory, CarbonLockUtil, ICarbonLock, LockUsage}
 import org.apache.carbondata.core.metadata.{ColumnarFormatVersion, SegmentFileStore}
@@ -502,7 +502,20 @@ case class CarbonInsertFromStageCommand(
   ): Array[(CarbonFile, CarbonFile)] = {
     val dir = FileFactory.getCarbonFile(loadDetailsDir, hadoopConf)
     if (dir.exists()) {
-      val allFiles = dir.listFiles()
+      val allFiles = dir match {
+        case _: AbstractDFSCarbonFile =>
+          // Only hdfs/obs/s3 server side can guarantee the file got from iterator is sorted based
+          // on file name so that we get them using iterator can get the A and A.success without
+          // loop all files. One file and another with '.success', so we need *2 as total and this
+          // value is just an approximate value.
+          val listed = dir.listFiles(false, batchSize * 2)
+          listed
+        case _ =>
+          // For local filesystem, even iterator is impl, its not a good choice to handle stage
+          // files using iterator since local filesystem  do not guarantee the file got from
+          // iterator is sorted before we get all files, so we can only list all files here.
+          dir.listFiles()
+      }
       val successFiles = allFiles.filter { file =>
         file.getName.endsWith(CarbonTablePath.SUCCESS_FILE_SUBFIX)
       }.map { file =>

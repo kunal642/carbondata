@@ -31,6 +31,7 @@ import java.io.OutputStream;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.zip.GZIPInputStream;
@@ -160,6 +161,20 @@ public class LocalCarbonFile implements CarbonFile {
       carbonFiles[i] = new LocalCarbonFile(files[i]);
     }
     return carbonFiles;
+  }
+
+  @Override
+  public CarbonFile[] listFiles(boolean recursive, int maxCount)
+      throws IOException {
+    List<CarbonFile> carbonFiles = new ArrayList<>();
+    int counter = 0;
+    Iterator it = FileUtils.iterateFiles(file, null, recursive);
+    while (it.hasNext() && counter < maxCount) {
+      CarbonFile carbonFile = new LocalCarbonFile((File) it.next());
+      carbonFiles.add(carbonFile);
+      counter++;
+    }
+    return carbonFiles.toArray(new CarbonFile[0]);
   }
 
   @Override
