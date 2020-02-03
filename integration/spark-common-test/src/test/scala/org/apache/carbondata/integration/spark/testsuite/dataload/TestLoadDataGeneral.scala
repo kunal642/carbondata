@@ -150,10 +150,14 @@ class TestLoadDataGeneral extends QueryTest with BeforeAndAfterEach {
     sql("drop table if exists load32000chardata")
     sql("drop table if exists load32000chardata_dup")
     sql("CREATE TABLE load32000chardata(dim1 String, dim2 String, mes1 int) STORED AS carbondata")
-    sql("CREATE TABLE load32000chardata_dup(dim1 String, dim2 String, mes1 int) STORED AS carbondata")
+    sql("CREATE TABLE load32000chardata_dup(dim1 String, dim2 String, mes1 int) STORED AS " +
+      "carbondata tblproperties('local_dictionary_enable'='false')")
     sql(s"LOAD DATA LOCAL INPATH '$testdata' into table load32000chardata OPTIONS('FILEHEADER'='dim1,dim2,mes1')")
+    // Previously converter step was checking more than 32k length and throwing exception.
+    // Now, due to local dictionary is true. Insert will not fail.
+    // when local dictionary is false, insert will fail at write step
     intercept[Exception] {
-      sql("insert into load32000chardata_dup select dim1,concat(load32000chardata.dim2,'aaaa'),mes1 from load32000chardata").show()
+      sql("insert into load32000chardata_dup select dim1,concat(load32000chardata.dim2,load32000chardata.dim2),mes1 from load32000chardata").show()
     }
     sql(s"LOAD DATA LOCAL INPATH '$testdata' into table load32000chardata_dup OPTIONS('FILEHEADER'='dim1,dim2,mes1')")
     intercept[Exception] {

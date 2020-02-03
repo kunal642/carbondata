@@ -147,7 +147,7 @@ case class CarbonInsertIntoWithDf(databaseNameOp: Option[String],
           FileFactory.mkdirs(metadataDirectoryPath)
         }
       } else {
-        carbonLoadModel.setSegmentId(System.currentTimeMillis().toString)
+        carbonLoadModel.setSegmentId(System.nanoTime().toString)
       }
       val partitionStatus = SegmentStatus.SUCCESS
 

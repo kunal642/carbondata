@@ -24,21 +24,22 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{AnalysisException, CarbonEnv, Dataset, Row, SparkSession}
+import org.apache.spark.sql.{AnalysisException, CarbonEnv, DataFrame, Dataset, Row, SparkSession}
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.catalog.{CatalogTable, HiveTableRelation}
+import org.apache.spark.sql.catalyst.catalog.HiveTableRelation
 import org.apache.spark.sql.catalyst.expressions.{Alias, AttributeReference, Literal, NamedExpression}
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Project}
 import org.apache.spark.sql.execution.command.{AtomicRunnableCommand, DataLoadTableFileMapping}
 import org.apache.spark.sql.execution.datasources.LogicalRelation
-import org.apache.spark.sql.types.{StringType, StructField, StructType}
-import org.apache.spark.util.{CarbonReflectionUtils, CausedBy, SparkUtil}
+import org.apache.spark.sql.types.{StructField, StructType}
+import org.apache.spark.util.CausedBy
 
 import org.apache.carbondata.common.logging.LogServiceFactory
 import org.apache.carbondata.converter.SparkDataTypeConverterImpl
 import org.apache.carbondata.core.datastore.impl.FileFactory
 import org.apache.carbondata.core.indexstore.PartitionSpec
-import org.apache.carbondata.core.metadata.schema.table.{CarbonTable, TableInfo}
+import org.apache.carbondata.core.metadata.schema.SchemaEvolutionEntry
+import org.apache.carbondata.core.metadata.schema.table.{CarbonTable, TableInfo, TableSchema}
 import org.apache.carbondata.core.metadata.schema.table.column.ColumnSchema
 import org.apache.carbondata.core.statusmanager.{LoadMetadataDetails, SegmentStatus, SegmentStatusManager}
 import org.apache.carbondata.core.util.{CarbonProperties, DataTypeUtil, ThreadLocalSessionInfo}
@@ -48,7 +49,7 @@ import org.apache.carbondata.events.OperationContext
 import org.apache.carbondata.processing.loading.TableProcessingOperations
 import org.apache.carbondata.processing.loading.exception.NoRetryException
 import org.apache.carbondata.processing.loading.model.CarbonLoadModel
-import org.apache.carbondata.processing.util.{CarbonDataProcessorUtil, CarbonLoaderUtil}
+import org.apache.carbondata.processing.util.CarbonLoaderUtil
 import org.apache.carbondata.spark.rdd.CarbonDataRDDFactory
 import org.apache.carbondata.spark.util.CarbonScalaUtil
 
@@ -89,13 +90,35 @@ case class CarbonInsertIntoCommand(databaseNameOp: Option[String],
 
   var finalPartition: Map[String, Option[String]] = Map.empty
 
+  var isInsertIntoWithConverterFlow: Boolean = false
+
+  var dataFrame: DataFrame = _
+
   override def processMetadata(sparkSession: SparkSession): Seq[Row] = {
-    setAuditTable(CarbonEnv.getDatabaseName(databaseNameOp)(sparkSession), tableName)
-    ThreadLocalSessionInfo
-      .setConfigurationToCurrentThread(sparkSession.sessionState.newHadoopConf())
     if (!tableInfoOp.isDefined) {
       throw new RuntimeException(" table info must be present when logical relation exist")
     }
+    // If logical plan is unresolved, need to convert it to resolved.
+    dataFrame = Dataset.ofRows(sparkSession, logicalPlan)
+    logicalPlan = dataFrame.queryExecution.analyzed
+    var isInsertFromTable = false
+    logicalPlan.collect {
+      case _: LogicalRelation =>
+        isInsertFromTable = true
+    }
+    // Currently projection re-ordering is based on schema ordinal,
+    // for some scenarios in alter table scenario, schema ordinal logic cannot be applied.
+    // So, sending it to old flow
+    // TODO: Handle this in future, this must use new flow.
+    if (!isInsertFromTable || isAlteredSchema(tableInfoOp.get.getFactTable)) {
+      isInsertIntoWithConverterFlow = true
+    }
+    if (isInsertIntoWithConverterFlow) {
+      return Seq.empty
+    }
+    setAuditTable(CarbonEnv.getDatabaseName(databaseNameOp)(sparkSession), tableName)
+    ThreadLocalSessionInfo
+      .setConfigurationToCurrentThread(sparkSession.sessionState.newHadoopConf())
     val (sizeInBytes, table, dbName, logicalPartitionRelation, finalPartition) = CommonLoadUtils
       .processMetadataCommon(
         sparkSession,
@@ -112,6 +135,20 @@ case class CarbonInsertIntoCommand(databaseNameOp: Option[String],
   }
 
   override def processData(sparkSession: SparkSession): Seq[Row] = {
+    if (isInsertIntoWithConverterFlow) {
+      return CarbonInsertIntoWithDf(
+        databaseNameOp,
+        tableName,
+        options,
+        isOverwriteTable,
+        dimFilesPath,
+        dataFrame,
+        inputSqlString,
+        None,
+        tableInfoOp,
+        internalOptions,
+        partition).process(sparkSession)
+    }
     val carbonProperty: CarbonProperties = CarbonProperties.getInstance()
     val dbName = CarbonEnv.getDatabaseName(databaseNameOp)(sparkSession)
     val hadoopConf = sparkSession.sessionState.newHadoopConf()
@@ -208,16 +245,14 @@ case class CarbonInsertIntoCommand(databaseNameOp: Option[String],
       // keep partition columns in the end and in the original create order
       reArrangedIndex = reArrangedIndex ++ partitionIndex.sortBy(x => x)
     }
-    // If logical plan is unresolved, need to convert it to resolved.
-    logicalPlan = Dataset.ofRows(sparkSession, logicalPlan).queryExecution.analyzed
-    var hasProject: Boolean = false
-    logicalPlan.collectFirst {
+    var processedProject: Boolean = false
+    // check first node is the projection or not
+    logicalPlan match {
       case _: Project =>
-        hasProject = true
-    }
-    if (!hasProject) {
-      // If project is not present, add the projection to re-arrange it
-      logicalPlan = Project(logicalPlan.output, logicalPlan)
+        // project is already present as first node
+      case _ =>
+        // If project is not present, add the projection to re-arrange it
+        logicalPlan = Project(logicalPlan.output, logicalPlan)
     }
     // Re-arrange the project as per columnSchema
     val newLogicalPlan = logicalPlan.transformDown {
@@ -227,81 +262,87 @@ case class CarbonInsertIntoCommand(databaseNameOp: Option[String],
       //        getReArrangedSchemaHiveRelation(reArrangedIndex, hiveRelation)
       case p: Project =>
         var oldProjectionList = p.projectList
-        if (partition.nonEmpty) {
-          // partition keyword is present in insert and
-          // select query partition projections may not be same as create order.
-          // So, bring to create table order
-          val dynamicPartition = partition.filterNot(entry => entry._2.isDefined)
-          var index = 0
-          val map = mutable.Map[String, Int]()
-          for (part <- dynamicPartition) {
-            map(part._1) = index
-            index = index + 1
-          }
-          var tempList = oldProjectionList.take(oldProjectionList.size - dynamicPartition.size)
-          val partitionList = oldProjectionList.takeRight(dynamicPartition.size)
-          val partitionSchema = table.getPartitionInfo.getColumnSchemaList.asScala
-          for (partitionCol <- partitionSchema) {
-            if (map.get(partitionCol.getColumnName).isDefined) {
-              tempList = tempList :+ partitionList(map(partitionCol.getColumnName))
+        if (!processedProject) {
+          if (partition.nonEmpty) {
+            // partition keyword is present in insert and
+            // select query partition projections may not be same as create order.
+            // So, bring to create table order
+            val dynamicPartition = partition.filterNot(entry => entry._2.isDefined)
+            var index = 0
+            val map = mutable.Map[String, Int]()
+            for (part <- dynamicPartition) {
+              map(part._1) = index
+              index = index + 1
             }
+            var tempList = oldProjectionList.take(oldProjectionList.size - dynamicPartition.size)
+            val partitionList = oldProjectionList.takeRight(dynamicPartition.size)
+            val partitionSchema = table.getPartitionInfo.getColumnSchemaList.asScala
+            for (partitionCol <- partitionSchema) {
+              if (map.get(partitionCol.getColumnName).isDefined) {
+                tempList = tempList :+ partitionList(map(partitionCol.getColumnName))
+              }
+            }
+            oldProjectionList = tempList
           }
-          oldProjectionList = tempList
-        }
-        if (reArrangedIndex.size != oldProjectionList.size) {
-          // for non-partition table columns must match
-          if (partition.isEmpty) {
-            throw new AnalysisException(
-              s"Cannot insert into table $tableName because the number of columns are different: " +
-              s"need ${ reArrangedIndex.size } columns, " +
-              s"but query has ${ oldProjectionList.size } columns.")
-          } else {
-            if (reArrangedIndex.size - oldProjectionList.size != convertedStaticPartition.size) {
+          if (reArrangedIndex.size != oldProjectionList.size) {
+            // for non-partition table columns must match
+            if (partition.isEmpty) {
               throw new AnalysisException(
                 s"Cannot insert into table $tableName because the number of columns are " +
-                s"different: need ${ reArrangedIndex.size } columns, " +
+                s"different: " +
+                s"need ${ reArrangedIndex.size } columns, " +
                 s"but query has ${ oldProjectionList.size } columns.")
             } else {
-              // TODO: For partition case, remaining projections need to validate ?
+              if (reArrangedIndex.size - oldProjectionList.size != convertedStaticPartition.size) {
+                throw new AnalysisException(
+                  s"Cannot insert into table $tableName because the number of columns are " +
+                  s"different: need ${ reArrangedIndex.size } columns, " +
+                  s"but query has ${ oldProjectionList.size } columns.")
+              } else {
+                // TODO: For partition case, remaining projections need to validate ?
+              }
             }
           }
-        }
-        var newProjectionList: Seq[NamedExpression] = Seq.empty
-        var i = 0
-        while (i < reArrangedIndex.size) {
-          // column schema is already has sortColumns-dimensions-measures. Collect the ordinal &
-          // re-arrange the projection in the same order
-          if (partition.nonEmpty &&
-              convertedStaticPartition.contains(selectedColumnSchema(i).getColumnName
-                .toLowerCase())) {
-            // If column schema present in partitionSchema means it is a static partition,
-            // then add a value literal expression in the project.
-            val value = convertedStaticPartition(selectedColumnSchema(i).getColumnName
-              .toLowerCase())
-            newProjectionList = newProjectionList :+
-                                Alias(new Literal(value,
-                                  SparkDataTypeConverterImpl.convertCarbonToSparkDataType(
-                                    selectedColumnSchema(i).getDataType)), value.toString)(
-                                  NamedExpression.newExprId,
-                                  None,
-                                  None).asInstanceOf[NamedExpression]
-          } else {
-            // If column schema NOT present in partition column,
-            // get projection column mapping its ordinal.
-            if (partition.contains(selectedColumnSchema(i).getColumnName.toLowerCase())) {
-              // static partition + dynamic partition case,
-              // here dynamic partition ordinal will be more than projection size
+          var newProjectionList: Seq[NamedExpression] = Seq.empty
+          var i = 0
+          while (i < reArrangedIndex.size) {
+            // column schema is already has sortColumns-dimensions-measures. Collect the ordinal &
+            // re-arrange the projection in the same order
+            if (partition.nonEmpty &&
+                convertedStaticPartition.contains(selectedColumnSchema(i).getColumnName
+                  .toLowerCase())) {
+              // If column schema present in partitionSchema means it is a static partition,
+              // then add a value literal expression in the project.
+              val value = convertedStaticPartition(selectedColumnSchema(i).getColumnName
+                .toLowerCase())
               newProjectionList = newProjectionList :+
-                                  oldProjectionList(
-                                    reArrangedIndex(i) - convertedStaticPartition.size)
+                                  Alias(new Literal(value,
+                                    SparkDataTypeConverterImpl.convertCarbonToSparkDataType(
+                                      selectedColumnSchema(i).getDataType)), value.toString)(
+                                    NamedExpression.newExprId,
+                                    None,
+                                    None).asInstanceOf[NamedExpression]
             } else {
-              newProjectionList = newProjectionList :+
-                                  oldProjectionList(reArrangedIndex(i))
+              // If column schema NOT present in partition column,
+              // get projection column mapping its ordinal.
+              if (partition.contains(selectedColumnSchema(i).getColumnName.toLowerCase())) {
+                // static partition + dynamic partition case,
+                // here dynamic partition ordinal will be more than projection size
+                newProjectionList = newProjectionList :+
+                                    oldProjectionList(
+                                      reArrangedIndex(i) - convertedStaticPartition.size)
+              } else {
+                newProjectionList = newProjectionList :+
+                                    oldProjectionList(reArrangedIndex(i))
+              }
             }
+            i = i + 1
           }
-          i = i + 1
+          processedProject = true
+          Project(newProjectionList, p.child)
+        } else {
+          p
         }
-        Project(newProjectionList, p.child)
     }
     scanResultRdd = sparkSession.sessionState.executePlan(newLogicalPlan).toRdd
     if (logicalPartitionRelation != null) {
@@ -343,7 +384,7 @@ case class CarbonInsertIntoCommand(databaseNameOp: Option[String],
           FileFactory.mkdirs(metadataDirectoryPath)
         }
       } else {
-        carbonLoadModel.setSegmentId(System.currentTimeMillis().toString)
+        carbonLoadModel.setSegmentId(System.nanoTime().toString)
       }
       val partitionStatus = SegmentStatus.SUCCESS
 
@@ -473,5 +514,21 @@ case class CarbonInsertIntoCommand(databaseNameOp: Option[String],
     } else {
       "INSERT INTO"
     }
+  }
+
+  private def isAlteredSchema(tableSchema: TableSchema): Boolean = {
+    if (tableInfoOp.get.getFactTable.getSchemaEvolution != null) {
+      for (entry: SchemaEvolutionEntry <- tableInfoOp
+        .get
+        .getFactTable
+        .getSchemaEvolution
+        .getSchemaEvolutionEntryList.asScala) {
+        if ((entry.getAdded != null && entry.getAdded.size() > 0) ||
+            (entry.getRemoved != null && entry.getRemoved.size() > 0)) {
+          return true
+        }
+      }
+    }
+    false
   }
 }

@@ -498,7 +498,7 @@ object CommonLoadUtils {
       if (numPartitions <= 0) {
         numPartitions = partitionsLen
       }
-      val sortColumns = attributes.take(table.getSortColumns().size())
+      val sortColumns = attributes.take(table.getSortColumns.size())
       val dataTypes = sortColumns.map(_.dataType)
       val sortedRDD: RDD[InternalRow] =
         GlobalSortHelper.sortBy(updatedRdd, numPartitions, dataTypes)
@@ -645,7 +645,7 @@ object CommonLoadUtils {
       catalog.filterPartitions(Nil) // materialize all the partitions in memory
     }
     var partitionSchema =
-      StructType(table.getPartitionInfo().getColumnSchemaList.asScala.map(field =>
+      StructType(table.getPartitionInfo.getColumnSchemaList.asScala.map(field =>
         metastoreSchema.fields.find(_.name.equalsIgnoreCase(field.getColumnName))).map(_.get))
     val dataSchema =
       StructType(metastoreSchema
