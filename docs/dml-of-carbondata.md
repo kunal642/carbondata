@@ -446,6 +446,46 @@ CarbonData DML statements are documented here,which includes:
   ```
   DELETE FROM carbontable WHERE column1 IN (SELECT column11 FROM sourceTable2 WHERE column1 = 'USA')
   ```
+    
+### DELETE STAGE
+
+  This command allows us to delete the data files (stage data) which is already loaded into the table.
+  ```
+  DELETE FROM TABLE [db_name.]table_name STAGE OPTIONS(property_name=property_value, ...)
+  ```  
+  **Supported Properties:**
+
+| Property                                                | Description                                                 |
+| ------------------------------------------------------- | ----------------------------------------------------------- |
+| [location](#location)                                   | The data file location                                      |
+| [retain_hour](#retain_hour)                             | Data file retain time in hours                              |
+
+-
+  You can use the following options to delete data:
+
+  - ##### location: 
+    The data files location, the command will scan the location, and delete files which are already loaded into the table. This check is done by scanning the stage metadata folder in table path.
+
+    ``` 
+    OPTIONS('location'='/test/data/')
+    ```
+
+  - ##### retain_hour: 
+    Data file retain time in second, the command just delete overdue files only.
+
+    ``` 
+    OPTIONS('retain_hour'='1')
+    ```
+
+  Examples:
+
+  ```
+  DELETE FROM TABLE carbontable STAGE OPTIONS ('location'='/test/data/')
+  ```
+
+  ```
+  DELETE FROM TABLE carbontable STAGE OPTIONS ('location'='/test/data/', 'retain_hour'='1')
+  ```
 
 ## COMPACTION
 
