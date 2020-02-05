@@ -21,12 +21,13 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
+import org.apache.log4j.Logger
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions
 import org.apache.spark.sql.catalyst.expressions.{Attribute, _}
-import org.apache.spark.sql.catalyst.planning.PhysicalOperation
+import org.apache.spark.sql.catalyst.planning.{ExtractEquiJoinKeys, PhysicalOperation}
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Project}
 import org.apache.spark.sql.catalyst.plans.physical.{HashPartitioning, Partitioning, UnknownPartitioning}
 import org.apache.spark.sql.execution._
@@ -36,9 +37,12 @@ import org.apache.spark.sql.sources.{BaseRelation, Filter}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.CarbonExpressions.{MatchCast => Cast}
 import org.apache.spark.sql.carbondata.execution.datasources.{CarbonFileIndex, CarbonSparkDataSourceUtil}
+import org.apache.spark.sql.catalyst.plans.LeftSemi
+import org.apache.spark.sql.execution.joins.{BroadCastSIFilterPushJoin, BuildRight}
 import org.apache.spark.util.CarbonReflectionUtils
 
 import org.apache.carbondata.common.exceptions.sql.MalformedCarbonCommandException
+import org.apache.carbondata.common.logging.LogServiceFactory
 import org.apache.carbondata.core.constants.CarbonCommonConstants
 import org.apache.carbondata.core.datastore.impl.FileFactory
 import org.apache.carbondata.core.indexstore.PartitionSpec
@@ -59,6 +63,8 @@ import org.apache.carbondata.spark.rdd.CarbonScanRDD
 private[sql] class CarbonLateDecodeStrategy extends SparkStrategy {
   val PUSHED_FILTERS = "PushedFilters"
   val READ_SCHEMA = "ReadSchema"
+
+  val LOGGER: Logger = LogServiceFactory.getLogService(this.getClass.getName)
 
   /*
   Spark 2.3.1 plan there can be case of multiple projections like below
@@ -95,8 +101,34 @@ private[sql] class CarbonLateDecodeStrategy extends SparkStrategy {
         if l.relation.isInstanceOf[CarbonDatasourceHadoopRelation] && driverSideCountStar(l) =>
         val relation = l.relation.asInstanceOf[CarbonDatasourceHadoopRelation]
         CarbonCountStar(colAttr, relation.carbonTable, SparkSession.getActiveSession.get) :: Nil
+      case ExtractEquiJoinKeys(LeftSemi, leftKeys, rightKeys, condition,
+      left, right)
+        if (isLeftSemiExistPushDownEnabled &&
+            isAllCarbonPlan(left) && isAllCarbonPlan(right)) =>
+        LOGGER.info(s"pushing down for ExtractEquiJoinKeysLeftSemiExist:right")
+        val carbon = planLater(left)
+        val pushedDownJoin = BroadCastSIFilterPushJoin(
+          leftKeys: Seq[Expression],
+          rightKeys: Seq[Expression],
+          LeftSemi,
+          BuildRight,
+          carbon,
+          planLater(right),
+          condition)
+        condition.map(FilterExec(_, pushedDownJoin)).getOrElse(pushedDownJoin) :: Nil
       case _ => Nil
     }
+  }
+
+  private def isAllCarbonPlan(plan: LogicalPlan): Boolean = {
+    val allRelations = plan.collect { case logicalRelation: LogicalRelation => logicalRelation }
+    !allRelations.exists(x => !x.relation.isInstanceOf[CarbonDatasourceHadoopRelation])
+  }
+
+  private def isLeftSemiExistPushDownEnabled: Boolean = {
+    CarbonProperties.getInstance.getProperty(
+      CarbonCommonConstants.CARBON_PUSH_LEFTSEMIEXIST_JOIN_AS_IN_FILTER,
+      CarbonCommonConstants.CARBON_PUSH_LEFTSEMIEXIST_JOIN_AS_IN_FILTER_DEFAULT).toBoolean
   }
 
   /**
@@ -177,7 +209,7 @@ private[sql] class CarbonLateDecodeStrategy extends SparkStrategy {
    * @param scanBuilder
    * @return
    */
-  private def pruneFilterProject(
+  def pruneFilterProject(
       relation: LogicalRelation,
       projects: Seq[NamedExpression],
       filterPredicates: Seq[Expression],
@@ -222,7 +254,7 @@ private[sql] class CarbonLateDecodeStrategy extends SparkStrategy {
       })
   }
 
-  private def setVectorReadSupport(
+  def setVectorReadSupport(
       relation: LogicalRelation, output: Seq[Attribute], rdd: RDD[InternalRow]) = {
     rdd.asInstanceOf[CarbonScanRDD[InternalRow]]
       .setVectorReaderSupport(supportBatchedDataSource(relation.relation.sqlContext, output))
