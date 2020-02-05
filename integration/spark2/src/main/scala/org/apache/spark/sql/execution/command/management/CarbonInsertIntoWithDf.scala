@@ -20,6 +20,7 @@ package org.apache.spark.sql.execution.command.management
 import java.text.SimpleDateFormat
 import java.util
 
+import org.apache.log4j.Logger
 import org.apache.spark.sql.{AnalysisException, CarbonUtils, DataFrame, Dataset, Row, SparkSession}
 import org.apache.spark.sql.execution.command.{DataLoadTableFileMapping, UpdateTableModel}
 import org.apache.spark.sql.execution.datasources.LogicalRelation
@@ -48,70 +49,36 @@ case class CarbonInsertIntoWithDf(databaseNameOp: Option[String],
     tableName: String,
     options: Map[String, String],
     isOverwriteTable: Boolean,
-    var dimFilesPath: Seq[DataLoadTableFileMapping] = Seq(),
+    dimFilesPath: Seq[DataLoadTableFileMapping] = Seq(),
     var dataFrame: DataFrame,
-    var inputSqlString: String = null,
-    var updateModel: Option[UpdateTableModel] = None,
-    var tableInfoOp: Option[TableInfo] = None,
-    var internalOptions: Map[String, String] = Map.empty,
-    var partition: Map[String, Option[String]] = Map.empty,
-    var operationContext: OperationContext = new OperationContext) {
+    inputSqlString: String = null,
+    updateModel: Option[UpdateTableModel] = None,
+    tableInfoOp: Option[TableInfo] = None,
+    internalOptions: Map[String, String] = Map.empty,
+    partition: Map[String, Option[String]] = Map.empty,
+    operationContext: OperationContext = new OperationContext)(sparkSession: SparkSession)
+  extends AbstractInsertCommand() {
 
-  var table: CarbonTable = _
-
-  var logicalPartitionRelation: LogicalRelation = _
-
-  var sizeInBytes: Long = _
-
-  var currPartitions: util.List[PartitionSpec] = _
-
-  var parentTablePath: String = _
-
-  val LOGGER = LogServiceFactory.getLogService(this.getClass.getName)
-
-  var finalPartition: Map[String, Option[String]] = Map.empty
-
-  var timeStampFormat: SimpleDateFormat = _
-
-  var dateFormat: SimpleDateFormat = _
-
-  def process(sparkSession: SparkSession): Seq[Row] = {
-    ThreadLocalSessionInfo
-      .setConfigurationToCurrentThread(sparkSession.sessionState.newHadoopConf())
-    val (sizeInBytes, table, dbName, logicalPartitionRelation, finalPartition) = CommonLoadUtils
-      .processMetadataCommon(
-        sparkSession,
-        databaseNameOp,
-        tableName,
-        tableInfoOp,
-        partition)
-    this.sizeInBytes = sizeInBytes
-    this.table = table
-    this.logicalPartitionRelation = logicalPartitionRelation
-    this.finalPartition = finalPartition
+  def process(): Seq[Row] = {
+    val (sizeInBytes, logicalPartitionRelation) = processMetadataCommon()
+    val finalPartition = getCompletePartitionValues
     val carbonProperty: CarbonProperties = CarbonProperties.getInstance()
     val hadoopConf = sparkSession.sessionState.newHadoopConf()
     carbonProperty.addProperty("zookeeper.enable.lock", "false")
     val factPath = ""
-    currPartitions = CommonLoadUtils.getCurrentParitions(sparkSession, table)
-    CommonLoadUtils.setNumberOfCoresWhileLoading(sparkSession, carbonProperty)
+    val currPartitions = getCurrentParitions
+    CommonLoadUtils.setNumberOfCoresWhileLoading(sparkSession)
     val optionsFinal: util.Map[String, String] =
-      CommonLoadUtils.getFinalLoadOptions(
-      carbonProperty, table, options)
-    val carbonLoadModel: CarbonLoadModel = CommonLoadUtils.prepareLoadModel(
+      getFinalLoadOptions(carbonProperty, carbonTable, options)
+    val carbonLoadModel: CarbonLoadModel = prepareLoadModel(
       hadoopConf,
       factPath,
       optionsFinal,
-      parentTablePath,
-      table,
+      carbonTable,
       isDataFrame = true,
       internalOptions,
       finalPartition,
       options)
-    val (tf, df) = CommonLoadUtils.getTimeAndDateFormatFromLoadModel(
-      carbonLoadModel)
-    timeStampFormat = tf
-    dateFormat = df
     // Delete stale segment folders that are not in table status but are physically present in
     // the Fact folder
     LOGGER.info(s"Deleting stale folders if present for table $dbName.$tableName")
@@ -126,8 +93,6 @@ case class CarbonInsertIntoWithDf(databaseNameOp: Option[String],
           table,
           isOverwriteTable,
           operationContext)
-      // First system has to partition the data first and then call the load data
-      LOGGER.info(s"Initiating Direct Load for the Table : ($dbName.$tableName)")
       // Clean up the old invalid segment data before creating a new entry for new load.
       SegmentStatusManager.deleteLoadsAndUpdateMetadata(table, false, currPartitions)
       // add the start entry for the new load in the table status file
@@ -152,14 +117,11 @@ case class CarbonInsertIntoWithDf(databaseNameOp: Option[String],
       val partitionStatus = SegmentStatus.SUCCESS
 
       val loadParams = CarbonLoadParams(sparkSession,
-        tableName,
         sizeInBytes,
         isOverwriteTable,
         carbonLoadModel,
         hadoopConf,
         logicalPartitionRelation,
-        dateFormat,
-        timeStampFormat,
         options,
         finalPartition,
         currPartitions,

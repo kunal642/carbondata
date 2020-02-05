@@ -138,7 +138,7 @@ abstract class DataCommand extends RunnableCommand with DataProcessOperation wit
  * Subclass need to process both metadata and data, processMetadata should be undoable
  * if process data failed.
  */
-abstract class AtomicRunnableCommand
+trait AtomicRunnableCommand
   extends RunnableCommand with MetadataProcessOperation with DataProcessOperation with Auditable {
 
   override def run(sparkSession: SparkSession): Seq[Row] = {

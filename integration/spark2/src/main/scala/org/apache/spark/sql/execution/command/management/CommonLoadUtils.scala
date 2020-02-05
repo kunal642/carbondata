@@ -84,105 +84,7 @@ object CommonLoadUtils {
     }
   }
 
-  def getDataFrameWithTupleID(dataFrame: Option[DataFrame]): DataFrame = {
-    val fields = dataFrame.get.schema.fields
-    import org.apache.spark.sql.functions.udf
-    // extracting only segment from tupleId
-    val getSegIdUDF = udf((tupleId: String) =>
-      CarbonUpdateUtil.getRequiredFieldFromTID(tupleId, TupleIdEnum.SEGMENT_ID))
-    // getting all fields except tupleId field as it is not required in the value
-    val otherFields = CarbonScalaUtil.getAllFieldsWithoutTupleIdField(fields)
-    // extract tupleId field which will be used as a key
-    val segIdColumn = getSegIdUDF(new Column(UnresolvedAttribute
-      .quotedString(CarbonCommonConstants.CARBON_IMPLICIT_COLUMN_TUPLEID))).
-      as(CarbonCommonConstants.CARBON_IMPLICIT_COLUMN_SEGMENTID)
-    val fieldWithTupleId = otherFields :+ segIdColumn
-    // use dataFrameWithTupleId as loadDataFrame
-    val dataFrameWithTupleId = dataFrame.get.select(fieldWithTupleId: _*)
-    (dataFrameWithTupleId)
-  }
-
-  def processMetadataCommon(sparkSession: SparkSession,
-      databaseNameOp: Option[String],
-      tableName: String,
-      tableInfoOp: Option[TableInfo],
-      partition: Map[String, Option[String]]): (Long, CarbonTable, String, LogicalRelation,
-      Map[String, Option[String]]) = {
-    val dbName = CarbonEnv.getDatabaseName(databaseNameOp)(sparkSession)
-    var table: CarbonTable = null
-    var logicalPartitionRelation: LogicalRelation = null
-    var sizeInBytes: Long = 0L
-
-    table = if (tableInfoOp.isDefined) {
-      CarbonTable.buildFromTableInfo(tableInfoOp.get)
-    } else {
-      val relation = CarbonEnv.getInstance(sparkSession).carbonMetaStore
-        .lookupRelation(Option(dbName), tableName)(sparkSession).asInstanceOf[CarbonRelation]
-      if (relation == null) {
-        throw new NoSuchTableException(dbName, tableName)
-      }
-      if (null == relation.carbonTable) {
-        LOGGER.error(s"Data loading failed. table not found: $dbName.$tableName")
-        throw new NoSuchTableException(dbName, tableName)
-      }
-      relation.carbonTable
-    }
-    var finalPartition: Map[String, Option[String]] = Map.empty
-    if (table.isHivePartitionTable) {
-      logicalPartitionRelation =
-        new FindDataSourceTable(sparkSession).apply(
-          sparkSession.sessionState.catalog.lookupRelation(
-            TableIdentifier(tableName, databaseNameOp))).collect {
-          case l: LogicalRelation => l
-        }.head
-      sizeInBytes = logicalPartitionRelation.relation.sizeInBytes
-      finalPartition = getCompletePartitionValues(partition, table)
-    }
-    (sizeInBytes, table, dbName, logicalPartitionRelation, finalPartition)
-  }
-
-  def prepareLoadModel(hadoopConf: Configuration,
-      factPath: String,
-      optionsFinal: util.Map[String, String],
-      parentTablePath: String,
-      table: CarbonTable,
-      isDataFrame: Boolean,
-      internalOptions: Map[String, String],
-      partition: Map[String, Option[String]],
-      options: Map[java.lang.String, String]): CarbonLoadModel = {
-    val carbonLoadModel = new CarbonLoadModel()
-    carbonLoadModel.setParentTablePath(parentTablePath)
-    carbonLoadModel.setFactFilePath(factPath)
-    carbonLoadModel.setCarbonTransactionalTable(table.getTableInfo.isTransactionalTable)
-    carbonLoadModel.setAggLoadRequest(
-      internalOptions.getOrElse(CarbonCommonConstants.IS_INTERNAL_LOAD_CALL,
-        CarbonCommonConstants.IS_INTERNAL_LOAD_CALL_DEFAULT).toBoolean)
-    carbonLoadModel.setSegmentId(internalOptions.getOrElse("mergedSegmentName", ""))
-    val columnCompressor = table.getTableInfo.getFactTable.getTableProperties.asScala
-      .getOrElse(CarbonCommonConstants.COMPRESSOR,
-        CompressorFactory.getInstance().getCompressor.getName)
-    carbonLoadModel.setColumnCompressor(columnCompressor)
-    carbonLoadModel.setRangePartitionColumn(table.getRangeColumn)
-    val javaPartition = mutable.Map[String, String]()
-    partition.foreach { case (k, v) =>
-      if (v.isEmpty) {
-        javaPartition(k) = null
-      } else {
-        javaPartition(k) = v.get
-      }
-    }
-    new CarbonLoadModelBuilder(table).build(
-      options.asJava,
-      optionsFinal,
-      carbonLoadModel,
-      hadoopConf,
-      javaPartition.asJava,
-      isDataFrame)
-    carbonLoadModel
-  }
-
-  def setNumberOfCoresWhileLoading(sparkSession: SparkSession,
-      carbonProperty: CarbonProperties): CarbonProperties = {
+  def setNumberOfCoresWhileLoading(sparkSession: SparkSession): CarbonProperties = {
     // get the value of 'spark.executor.cores' from spark conf, default value is 1
     val sparkExecutorCores = sparkSession.sparkContext.conf.get("spark.executor.cores", "1")
     // get the value of 'carbon.number.of.cores.while.loading' from carbon properties,
@@ -199,80 +101,8 @@ object CommonLoadUtils {
         sparkExecutorCores
     }
     // update the property with new value
-    carbonProperty.addProperty(CarbonCommonConstants.NUM_CORES_LOADING, numCoresLoading)
-  }
-
-  def getCurrentParitions(sparkSession: SparkSession,
-      table: CarbonTable): util.List[PartitionSpec] = {
-    val currPartitions = if (table.isHivePartitionTable) {
-      CarbonFilters.getCurrentPartitions(
-        sparkSession,
-        table) match {
-        case Some(parts) => new util.ArrayList(parts.toList.asJava)
-        case _ => null
-      }
-    } else {
-      null
-    }
-    currPartitions
-  }
-
-  def getFinalLoadOptions(carbonProperty: CarbonProperties,
-      table: CarbonTable,
-      options: Map[java.lang.String, String]): util.Map[String, String] = {
-    val tableProperties = table.getTableInfo.getFactTable.getTableProperties
-    val optionsFinal = LoadOption.fillOptionWithDefaultValue(options.asJava)
-    //    EnvHelper.setDefaultHeader(sparkSession, optionsFinal)
-    /**
-     * Priority of sort_scope assignment :
-     * -----------------------------------
-     *
-     * 1. Load Options  ->
-     * LOAD DATA INPATH 'data.csv' INTO TABLE tableName OPTIONS('sort_scope'='no_sort')
-     *
-     * 2. Session property CARBON_TABLE_LOAD_SORT_SCOPE  ->
-     * SET CARBON.TABLE.LOAD.SORT.SCOPE.database.table=local_sort
-     *
-     * 3. Sort Scope provided in TBLPROPERTIES
-     * 4. Session property CARBON_OPTIONS_SORT_SCOPE
-     * 5. Default Sort Scope LOAD_SORT_SCOPE
-     */
-    if (table.getNumberOfSortColumns == 0) {
-      // If tableProperties.SORT_COLUMNS is null
-      optionsFinal.put(CarbonCommonConstants.SORT_SCOPE,
-        SortScopeOptions.SortScope.NO_SORT.name)
-    } else if (StringUtils.isBlank(tableProperties.get(CarbonCommonConstants.SORT_SCOPE))) {
-      // If tableProperties.SORT_COLUMNS is not null
-      // and tableProperties.SORT_SCOPE is null
-      optionsFinal.put(CarbonCommonConstants.SORT_SCOPE,
-        options.getOrElse(CarbonCommonConstants.SORT_SCOPE,
-          carbonProperty.getProperty(CarbonLoadOptionConstants.CARBON_TABLE_LOAD_SORT_SCOPE +
-                                     table.getDatabaseName + "." + table.getTableName,
-            carbonProperty.getProperty(CarbonLoadOptionConstants.CARBON_OPTIONS_SORT_SCOPE,
-              carbonProperty.getProperty(CarbonCommonConstants.LOAD_SORT_SCOPE,
-                SortScopeOptions.SortScope.LOCAL_SORT.name)))))
-    } else {
-      optionsFinal.put(CarbonCommonConstants.SORT_SCOPE,
-        options.getOrElse(CarbonCommonConstants.SORT_SCOPE,
-          carbonProperty.getProperty(
-            CarbonLoadOptionConstants.CARBON_TABLE_LOAD_SORT_SCOPE + table.getDatabaseName + "." +
-            table.getTableName,
-            tableProperties.asScala.getOrElse(CarbonCommonConstants.SORT_SCOPE,
-              carbonProperty.getProperty(CarbonLoadOptionConstants.CARBON_OPTIONS_SORT_SCOPE,
-                carbonProperty.getProperty(CarbonCommonConstants.LOAD_SORT_SCOPE,
-                  CarbonCommonConstants.LOAD_SORT_SCOPE_DEFAULT))))))
-      if (!StringUtils.isBlank(tableProperties.get("global_sort_partitions"))) {
-        if (options.get("global_sort_partitions").isEmpty) {
-          optionsFinal.put(
-            "global_sort_partitions",
-            tableProperties.get("global_sort_partitions"))
-        }
-      }
-
-    }
-    optionsFinal
-      .put("bad_record_path", CarbonBadRecordUtil.getBadRecordsPath(options.asJava, table))
-    optionsFinal
+    CarbonProperties.getInstance()
+      .addProperty(CarbonCommonConstants.NUM_CORES_LOADING, numCoresLoading)
   }
 
   def firePreLoadEvents(sparkSession: SparkSession,
@@ -301,25 +131,6 @@ object CommonLoadUtils {
         dataMapOperationContext)
     }
     (tableDataMaps, dataMapOperationContext)
-  }
-
-  def firePostLoadEvents(sparkSession: SparkSession,
-      carbonLoadModel: CarbonLoadModel,
-      tableDataMaps: util.List[TableDataMap],
-      dataMapOperationContext: OperationContext,
-      table: CarbonTable,
-      operationContext: OperationContext): Unit = {
-    val loadTablePostExecutionEvent: LoadTablePostExecutionEvent =
-      new LoadTablePostExecutionEvent(
-        table.getCarbonTableIdentifier,
-        carbonLoadModel)
-    OperationListenerBus.getInstance.fireEvent(loadTablePostExecutionEvent, operationContext)
-    if (tableDataMaps.size() > 0) {
-      val buildDataMapPostExecutionEvent = BuildDataMapPostExecutionEvent(sparkSession,
-        table.getAbsoluteTableIdentifier, null, Seq(carbonLoadModel.getSegmentId), false)
-      OperationListenerBus.getInstance()
-        .fireEvent(buildDataMapPostExecutionEvent, dataMapOperationContext)
-    }
   }
 
   /**

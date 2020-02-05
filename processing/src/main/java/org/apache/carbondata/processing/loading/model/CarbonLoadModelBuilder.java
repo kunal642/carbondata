@@ -90,7 +90,7 @@ public class CarbonLoadModelBuilder {
     model.setTaskNo(taskNo);
 
     // we have provided 'fileheader', so it hadoopConf can be null
-    build(options, optionsFinal, model, null);
+    build(optionsFinal, model, null);
     String timestampFormat = options.get("timestampformat");
     if (timestampFormat == null) {
       timestampFormat = CarbonProperties.getInstance()
@@ -112,23 +112,20 @@ public class CarbonLoadModelBuilder {
 
   /**
    * build CarbonLoadModel for data loading
-   * @param options Load options from user input
    * @param optionsFinal Load options that populated with default values for optional options
    * @param carbonLoadModel The output load model
    * @param hadoopConf hadoopConf is needed to read CSV header if there 'fileheader' is not set in
    *                   user provided load options
    */
   public void build(
-      Map<String, String> options,
       Map<String, String> optionsFinal,
       CarbonLoadModel carbonLoadModel,
       Configuration hadoopConf) throws InvalidLoadOptionException, IOException {
-    build(options, optionsFinal, carbonLoadModel, hadoopConf, new HashMap<String, String>(), false);
+    build(optionsFinal, carbonLoadModel, hadoopConf, new HashMap<String, String>(), false);
   }
 
   /**
    * build CarbonLoadModel for data loading
-   * @param options Load options from user input
    * @param optionsFinal Load options that populated with default values for optional options
    * @param carbonLoadModel The output load model
    * @param hadoopConf hadoopConf is needed to read CSV header if there 'fileheader' is not set in
@@ -137,7 +134,6 @@ public class CarbonLoadModelBuilder {
    * @param isDataFrame true if build for load for dataframe
    */
   public void build(
-      Map<String, String> options,
       Map<String, String> optionsFinal,
       CarbonLoadModel carbonLoadModel,
       Configuration hadoopConf,
@@ -213,7 +209,7 @@ public class CarbonLoadModelBuilder {
       }
     }
 
-    String binaryDecoder = options.get("binary_decoder");
+    String binaryDecoder = optionsFinal.get("binary_decoder");
     carbonLoadModel.setBinaryDecoder(binaryDecoder);
     carbonLoadModel.setTimestampformat(timestampformat);
     carbonLoadModel.setDateFormat(dateFormat);

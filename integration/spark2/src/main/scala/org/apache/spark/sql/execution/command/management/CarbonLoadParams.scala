@@ -39,14 +39,10 @@ import org.apache.carbondata.processing.loading.model.CarbonLoadModel
 * intermediate object to pass between load functions
 */
 case class CarbonLoadParams(sparkSession: SparkSession,
-    tableName: String,
     sizeInBytes: Long,
     isOverwriteTable: Boolean,
     carbonLoadModel: CarbonLoadModel,
-    hadoopConf: Configuration,
     logicalPartitionRelation: LogicalRelation,
-    dateFormat : SimpleDateFormat,
-    timeStampFormat : SimpleDateFormat,
     optionsOriginal: Map[String, String],
     finalPartition : Map[String, Option[String]],
     currPartitions: util.List[PartitionSpec],

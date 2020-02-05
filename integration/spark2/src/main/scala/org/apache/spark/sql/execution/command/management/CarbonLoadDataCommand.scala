@@ -97,7 +97,7 @@ case class CarbonLoadDataCommand(databaseNameOp: Option[String],
     carbonProperty.addProperty("zookeeper.enable.lock", "false")
     val factPath = FileUtils.getPaths(factPathFromUser, hadoopConf)
     currPartitions = CommonLoadUtils.getCurrentParitions(sparkSession, table)
-    CommonLoadUtils.setNumberOfCoresWhileLoading(sparkSession, carbonProperty)
+    CommonLoadUtils.setNumberOfCoresWhileLoading(sparkSession)
     val optionsFinal: util.Map[String, String] =
       CommonLoadUtils.getFinalLoadOptions(
         carbonProperty, table, options)
