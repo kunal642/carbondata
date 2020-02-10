@@ -45,6 +45,7 @@ import org.apache.carbondata.core.metadata.schema.table.RelationIdentifier;
 import org.apache.carbondata.core.metadata.schema.table.column.ColumnSchema;
 import org.apache.carbondata.core.metadata.schema.table.column.ParentColumnTableRelation;
 import org.apache.carbondata.core.reader.CarbonIndexFileReader;
+import org.apache.carbondata.core.scan.executor.util.QueryUtil;
 import org.apache.carbondata.core.util.path.CarbonTablePath;
 import org.apache.carbondata.format.BlockIndex;
 
@@ -178,6 +179,9 @@ public abstract class AbstractDataFileFooterConverter {
           readIndexHeader.getTable_columns();
       for (int i = 0; i < table_columns.size(); i++) {
         columnSchemaList.add(thriftColumnSchemaToWrapperColumnSchema(table_columns.get(i)));
+      }
+      if (!isTransactionalTable) {
+        QueryUtil.updateColumnUniqueIdForNonTransactionTable(columnSchemaList);
       }
       // get the segment info
       SegmentInfo segmentInfo = getSegmentInfo(readIndexHeader.getSegment_info());
