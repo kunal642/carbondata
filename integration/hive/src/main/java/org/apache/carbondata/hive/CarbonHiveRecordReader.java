@@ -86,6 +86,7 @@ class CarbonHiveRecordReader extends CarbonRecordReader<ArrayWritable>
       int columnId = 0;
       for (int j = 0; j < arraySelectedColId.length; j++) {
         columnId = Integer.parseInt(arraySelectedColId[j]);
+
         columnIds[j] = columnId;
       }
     }
@@ -108,6 +109,11 @@ class CarbonHiveRecordReader extends CarbonRecordReader<ArrayWritable>
       }
       return true;
     } else {
+      try {
+        queryExecutor.finish();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
       return false;
     }
   }
