@@ -1,0 +1,295 @@
+package org.apache.carbondata.hive.util;
+
+import java.io.File;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.carbondata.common.logging.LogServiceFactory;
+import org.apache.carbondata.core.constants.CarbonCommonConstants;
+import org.apache.carbondata.core.datastore.compression.CompressorFactory;
+import org.apache.carbondata.core.datastore.filesystem.CarbonFile;
+import org.apache.carbondata.core.datastore.impl.FileFactory;
+import org.apache.carbondata.core.fileoperations.FileWriteOperation;
+import org.apache.carbondata.core.metadata.AbsoluteTableIdentifier;
+import org.apache.carbondata.core.metadata.converter.ThriftWrapperSchemaConverterImpl;
+import org.apache.carbondata.core.metadata.datatype.DataType;
+import org.apache.carbondata.core.metadata.datatype.Field;
+import org.apache.carbondata.core.metadata.datatype.StructField;
+import org.apache.carbondata.core.metadata.schema.PartitionInfo;
+import org.apache.carbondata.core.metadata.schema.SchemaEvolution;
+import org.apache.carbondata.core.metadata.schema.SchemaEvolutionEntry;
+import org.apache.carbondata.core.metadata.schema.SchemaReader;
+import org.apache.carbondata.core.metadata.schema.table.CarbonTable;
+import org.apache.carbondata.core.metadata.schema.table.TableInfo;
+import org.apache.carbondata.core.metadata.schema.table.TableSchema;
+import org.apache.carbondata.core.metadata.schema.table.TableSchemaBuilder;
+import org.apache.carbondata.core.metadata.schema.table.column.ColumnSchema;
+import org.apache.carbondata.core.util.CarbonUtil;
+import org.apache.carbondata.core.util.path.CarbonTablePath;
+import org.apache.carbondata.core.writer.ThriftWriter;
+import org.apache.carbondata.processing.loading.constants.DataLoadProcessorConstants;
+import org.apache.carbondata.processing.loading.model.CarbonDataLoadSchema;
+import org.apache.carbondata.processing.loading.model.CarbonLoadModel;
+import org.apache.carbondata.processing.util.TableOptionConstant;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.metastore.HiveMetaHook;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.metastore.api.MetaException;
+import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.log4j.Logger;
+
+public class HiveCarbonUtil {
+
+  private static final Logger LOGGER =
+      LogServiceFactory.getLogService(HiveCarbonUtil.class.getName());
+
+  public static CarbonLoadModel getCarbonLoadModel(Configuration tableProperties) {
+    String[] tableUniqueName = tableProperties.get("name").split("\\.");
+    String databaseName = tableUniqueName[0];
+    String tableName = tableUniqueName[1];
+    String tablePath = tableProperties.get("location");
+    String columns = tableProperties.get("columns");
+    String sortColumns = tableProperties.get("sort_columns");
+    String[] columnTypes = splitSchemaStringToArray(tableProperties.get("columns.types"));
+    String complexDelim = tableProperties.get("complex_delimiter", "");
+    CarbonLoadModel carbonLoadModel =
+        getCarbonLoadModel(tableName, databaseName, tablePath, sortColumns, columns.split(","),
+            columnTypes, tableProperties);
+    carbonLoadModel.setCarbonTransactionalTable(true);
+    carbonLoadModel.getCarbonDataLoadSchema().getCarbonTable().setTransactionalTable(true);
+    for (String delim : complexDelim.split(",")) {
+      carbonLoadModel.setComplexDelimiter(delim);
+    }
+    return carbonLoadModel;
+  }
+
+  public static CarbonLoadModel getCarbonLoadModel(Properties tableProperties,
+      Configuration configuration) {
+    String[] tableUniqueName = tableProperties.getProperty("name").split("\\.");
+    String databaseName = tableUniqueName[0];
+    String tableName = tableUniqueName[1];
+    String tablePath = tableProperties.getProperty("location");
+    String columns = tableProperties.getProperty("columns");
+    String sortColumns = tableProperties.getProperty("sort_columns");
+    String[] columnTypes = splitSchemaStringToArray(tableProperties.getProperty("columns.types"));
+    String complexDelim = tableProperties.getProperty("complex_delimiter", "");
+    CarbonLoadModel carbonLoadModel =
+        getCarbonLoadModel(tableName, databaseName, tablePath, sortColumns, columns.split(","),
+            columnTypes, configuration);
+    for (String delim : complexDelim.split(",")) {
+      carbonLoadModel.setComplexDelimiter(delim);
+    }
+    return carbonLoadModel;
+  }
+
+  public static CarbonLoadModel getCarbonLoadModel(String tableName, String databaseName,
+      String location, String sortColumnsString, String[] columns, String[] columnTypes, Configuration configuration) {
+    CarbonLoadModel loadModel = new CarbonLoadModel();
+    CarbonTable carbonTable;
+    try {
+      String schemaFilePath = CarbonTablePath.getSchemaFilePath(location);
+      AbsoluteTableIdentifier absoluteTableIdentifier =
+          AbsoluteTableIdentifier.from(location, databaseName, tableName, "");
+      if (FileFactory.getCarbonFile(schemaFilePath).exists()) {
+        carbonTable = SchemaReader.readCarbonTableFromStore(absoluteTableIdentifier);
+      } else {
+        String carbonDataFile = CarbonUtil.getFilePathExternalFilePath(location, configuration);
+        if (carbonDataFile == null) {
+          carbonTable = CarbonTable.buildFromTableInfo(
+              getTableInfo(tableName, databaseName, location, sortColumnsString, columns,
+                  columnTypes));
+        } else {
+          carbonTable = CarbonTable.buildFromTableInfo(
+              SchemaReader.inferSchema(absoluteTableIdentifier, false, configuration));
+        }
+        carbonTable.setTransactionalTable(false);
+      }
+    } catch (SQLException | IOException e) {
+      throw new RuntimeException("Unable to fetch schema for the table: " + tableName, e);
+    }
+    loadModel.setTablePath(location);
+    loadModel.setDatabaseName(databaseName);
+    loadModel.setTableName(tableName);
+    loadModel.setSerializationNullFormat(",\\N");
+    loadModel.setBadRecordsLoggerEnable(
+        TableOptionConstant.BAD_RECORDS_LOGGER_ENABLE.getName() + ",true");
+    loadModel.setBadRecordsAction(TableOptionConstant.BAD_RECORDS_ACTION.getName() + ",fail");
+    loadModel
+        .setIsEmptyDataBadRecord(DataLoadProcessorConstants.IS_EMPTY_DATA_BAD_RECORD + ",false");
+    loadModel.setCsvHeader(Arrays.toString(columns));
+    loadModel.setCsvHeaderColumns(columns);
+
+    String globalSortPartitions = carbonTable.getTableInfo().getFactTable().getTableProperties()
+        .get("global_sort_partitions");
+    if (globalSortPartitions != null) {
+      loadModel.setGlobalSortPartitions(globalSortPartitions);
+    }
+    String columnCompressor = carbonTable.getTableInfo().getFactTable().getTableProperties()
+        .get(CarbonCommonConstants.COMPRESSOR);
+    if (null == columnCompressor) {
+      columnCompressor = CompressorFactory.getInstance().getCompressor().getName();
+    }
+    loadModel.setColumnCompressor(columnCompressor);
+    loadModel.setCarbonDataLoadSchema(new CarbonDataLoadSchema(carbonTable));
+    loadModel.setCarbonTransactionalTable(carbonTable.isTransactionalTable());
+    loadModel.setSkipParsers();
+    return loadModel;
+  }
+
+  private static TableInfo getTableInfo(String tableName, String databaseName, String location,
+      String sortColumnsString, String[] columns, String[] columnTypes)
+      throws SQLException {
+    TableInfo tableInfo = new TableInfo();
+    TableSchemaBuilder builder = new TableSchemaBuilder();
+    builder.tableName(tableName);
+    List<String> sortColumns = new ArrayList<>();
+    if (sortColumnsString != null) {
+      sortColumns =
+          Arrays.asList(sortColumnsString.toLowerCase().split("\\,"));
+    }
+    List<String> partitionColumns = new ArrayList<>();
+//    for (FieldSchema fieldSchema : table.getPartitionKeys()) {
+//      partitionColumns.add(fieldSchema.getName());
+//    }
+    PartitionInfo partitionInfo = null;
+    AtomicInteger integer = new AtomicInteger();
+    for (int i = 0; i < columns.length; i++) {
+      DataType dataType = DataTypeUtil.convertHiveTypeToCarbon(columnTypes[i]);
+      Field field = new Field(columns[i].toLowerCase(), dataType);
+      ColumnSchema col = builder
+          .addColumn(new StructField(columns[i].toLowerCase(), dataType, field.getChildren()),
+              integer, sortColumns.contains(columns[i]), false);
+      if (partitionColumns.contains(col.getColumnName())) {
+        if (partitionInfo == null) {
+          partitionInfo = new PartitionInfo();
+        }
+        partitionInfo.addColumnSchema(col);
+      }
+    }
+    TableSchema tableSchema = builder.build();
+    SchemaEvolution schemaEvol = new SchemaEvolution();
+    List<SchemaEvolutionEntry> schemaEvolutionEntry = new ArrayList<>();
+    schemaEvolutionEntry.add(new SchemaEvolutionEntry());
+    schemaEvol.setSchemaEvolutionEntryList(schemaEvolutionEntry);
+    tableSchema.setSchemaEvolution(schemaEvol);
+    tableSchema.setPartitionInfo(partitionInfo);
+    tableInfo.setDatabaseName(databaseName);
+    tableInfo.setTablePath(location);
+    tableInfo.setFactTable(tableSchema);
+    return tableInfo;
+  }
+
+  private static void writeSchemaFile(TableInfo tableInfo) throws IOException {
+    ThriftWrapperSchemaConverterImpl schemaConverter = new ThriftWrapperSchemaConverterImpl();
+    CarbonFile schemaFile =
+        FileFactory.getCarbonFile(CarbonTablePath.getSchemaFilePath(tableInfo.getTablePath()));
+    if (!schemaFile.exists()) {
+      if (!schemaFile.getParentFile().mkdirs()) {
+        throw new IOException(
+            "Unable to create directory: " + schemaFile.getParentFile().getAbsolutePath());
+      }
+    }
+    ThriftWriter thriftWriter = new ThriftWriter(schemaFile.getAbsolutePath(), false);
+    thriftWriter.open(FileWriteOperation.OVERWRITE);
+    thriftWriter.write(schemaConverter
+        .fromWrapperToExternalTableInfo(tableInfo, tableInfo.getDatabaseName(),
+            tableInfo.getFactTable().getTableName()));
+    thriftWriter.close();
+    schemaFile.setLastModifiedTime(System.currentTimeMillis());
+  }
+
+  public static HiveMetaHook getMetaHook() {
+    return new HiveMetaHook() {
+
+      @Override
+      public void preCreateTable(Table table) throws MetaException {
+
+      }
+
+      @Override
+      public void rollbackCreateTable(Table table) throws MetaException {
+        commitDropTable(table, false);
+      }
+
+      @Override
+      public void commitCreateTable(Table table) throws MetaException {
+        try {
+          List<FieldSchema> fieldSchemas = table.getSd().getCols();
+          String[] columns = new String[fieldSchemas.size()];
+          String[] columnTypes = new String[fieldSchemas.size()];
+          int i = 0;
+          for (FieldSchema fieldSchema : table.getSd().getCols()) {
+            columns[i] = fieldSchema.getName();
+            columnTypes[i++] = fieldSchema.getType();
+          }
+          TableInfo tableInfo = getTableInfo(table.getTableName(), table.getDbName(), table.getSd().getLocation(),
+              table.getParameters().getOrDefault("sort_columns", ""),
+              columns, columnTypes);
+          tableInfo.getFactTable().getTableProperties().putAll(table.getParameters());
+          writeSchemaFile(tableInfo);
+        } catch (IOException | SQLException e) {
+          LOGGER.error(e);
+          throw new MetaException("Problem while writing schema file: " + e.getMessage());
+        }
+      }
+
+      @Override
+      public void preDropTable(Table table) throws MetaException {
+
+      }
+
+      @Override
+      public void rollbackDropTable(Table table) throws MetaException {
+
+      }
+
+      @Override
+      public void commitDropTable(Table table, boolean b) throws MetaException {
+        FileFactory.deleteAllFilesOfDir(new File(table.getSd().getLocation()));
+      }
+    };
+  }
+
+  public static String[] splitSchemaStringToArray(String schema) {
+    List<String> tokens = new ArrayList();
+    StringBuilder stack = new StringBuilder();
+    int openingCount = 0;
+    for (int i = 0; i < schema.length(); i++) {
+      if (schema.charAt(i) == '<') {
+        openingCount++;
+        stack.append(schema.charAt(i));
+      } else if (schema.charAt(i) == '>') {
+        --openingCount;
+        if (i == schema.length() - 1) {
+          stack.append(schema.charAt(i));
+          tokens.add(stack.toString());
+          stack = new StringBuilder();
+          openingCount = 0;
+        } else {
+          stack.append(schema.charAt(i));
+        }
+      } else if (schema.charAt(i) == ':' && openingCount > 0) {
+        stack.append(schema.charAt(i));
+      } else if (schema.charAt(i) == ':' && openingCount == 0) {
+        tokens.add(stack.toString());
+        stack = new StringBuilder();
+        openingCount = 0;
+      } else if (i == schema.length() - 1) {
+        stack.append(schema.charAt(i));
+        tokens.add(stack.toString());
+        stack = new StringBuilder();
+        openingCount = 0;
+      } else {
+        stack.append(schema.charAt(i));
+      }
+    }
+    return tokens.toArray(new String[tokens.size()]);
+  }
+}

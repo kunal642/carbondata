@@ -59,13 +59,6 @@ import org.junit.Test;
 
 import static parquet.hadoop.ParquetInputFormat.FILTER_PREDICATE;
 
-/**
- * @program carbondata
- * @description: test hive expression to carbondata expression filter
- * @author: xiaohui
- * @create: 2020/01/01 15:27
- */
-
 public class Hive2CarbonExpressionTest {
   private static StoreCreator creator;
   private static CarbonLoadModel loadModel;

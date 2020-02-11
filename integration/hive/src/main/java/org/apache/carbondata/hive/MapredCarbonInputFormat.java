@@ -26,6 +26,8 @@ import org.apache.carbondata.common.logging.LogServiceFactory;
 import org.apache.carbondata.core.datamap.DataMapFilter;
 import org.apache.carbondata.core.datastore.impl.FileFactory;
 import org.apache.carbondata.core.exception.InvalidConfigurationException;
+import org.apache.carbondata.core.metadata.AbsoluteTableIdentifier;
+import org.apache.carbondata.core.metadata.schema.SchemaReader;
 import org.apache.carbondata.core.metadata.schema.table.CarbonTable;
 import org.apache.carbondata.core.metadata.schema.table.column.CarbonColumn;
 import org.apache.carbondata.core.scan.expression.Expression;
@@ -33,6 +35,7 @@ import org.apache.carbondata.core.scan.model.QueryModel;
 import org.apache.carbondata.core.scan.model.QueryModelBuilder;
 import org.apache.carbondata.core.util.DataTypeConverterImpl;
 import org.apache.carbondata.core.util.ObjectSerializationUtil;
+import org.apache.carbondata.core.util.path.CarbonTablePath;
 import org.apache.carbondata.hadoop.CarbonInputSplit;
 import org.apache.carbondata.hadoop.api.CarbonFileInputFormat;
 import org.apache.carbondata.hadoop.api.CarbonInputFormat;
@@ -91,8 +94,20 @@ public class MapredCarbonInputFormat extends CarbonTableInputFormat<ArrayWritabl
     if (null != validInputPath) {
       // read the schema file to get the absoluteTableIdentifier having the correct table id
       // persisted in the schema
-      CarbonTable carbonTable =
-          CarbonTable.buildTable(validInputPath, getTableName(configuration), configuration);
+      CarbonTable carbonTable;
+      String schemaCarbonTablePath = CarbonTablePath.getSchemaFilePath(validInputPath);
+      AbsoluteTableIdentifier absoluteTableIdentifier = AbsoluteTableIdentifier
+          .from(validInputPath, getDatabaseName(configuration), getTableName(configuration));
+      if (FileFactory.getCarbonFile(schemaCarbonTablePath).exists()) {
+        // read the schema file to get the absoluteTableIdentifier having the correct table id
+        // persisted in the schema
+        carbonTable = SchemaReader.readCarbonTableFromStore(absoluteTableIdentifier);
+      } else {
+        // InferSchema from data file
+        carbonTable = CarbonTable.buildFromTableInfo(SchemaReader
+            .inferSchema(absoluteTableIdentifier, false));
+        carbonTable.setTransactionalTable(true);
+      }
       configuration.set(CARBON_TABLE, ObjectSerializationUtil.convertObjectToString(carbonTable));
       setTableInfo(configuration, carbonTable.getTableInfo());
     } else {
