@@ -43,49 +43,61 @@ public class HiveCarbonTest extends HiveTestUtils {
     CarbonProperties.getInstance().addProperty(CarbonCommonConstants.ENABLE_UNSAFE_SORT, "false");
     CarbonProperties.getInstance().addProperty(CarbonCommonConstants.CARBON_WRITTEN_BY_APPNAME, "hive");
     statement = getConnection().createStatement();
-    statement.execute("drop table if exists hive_carbon_table1");
-    statement.execute("drop table if exists hive_carbon_table2");
-    statement.execute("drop table if exists hive_carbon_table3");
-    statement.execute("drop table if exists hive_carbon_table4");
-    statement.execute("drop table if exists hive_carbon_table5");
-    statement.execute("drop table if exists hive_table");
-    statement.execute("drop table if exists hive_table_complex");
-    statement.execute("CREATE external TABLE hive_table_complex(arrayField  ARRAY<STRING>, mapField MAP<String, String>, structField STRUCT<city: String, pincode: int>) ROW FORMAT SERDE 'org.apache.hadoop.hive.contrib.serde2.MultiDelimitSerDe' WITH SERDEPROPERTIES ('field.delim'=',', 'collection.delim'='$', 'mapkey.delim'='@') location '/home/root1/projects/carbondata/integration/hive/src/main/resources/complex/' TBLPROPERTIES('external.table.purge'='false')");
-    statement.execute("CREATE external TABLE hive_table( shortField SMALLINT, intField INT, bigintField BIGINT , doubleField DOUBLE, stringField STRING, timestampField TIMESTAMP, decimalField DECIMAL(18,2), dateField DATE, charField CHAR(5), floatField FLOAT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' location '/home/root1/projects/carbondata/integration/hive/src/main/resources/csv/' TBLPROPERTIES ('external.table.purge'='false')");
+//    statement.execute("drop table if exists hive_carbon_table1");
+//    statement.execute("drop table if exists hive_carbon_table2");
+//    statement.execute("drop table if exists hive_carbon_table3");
+//    statement.execute("drop table if exists hive_carbon_table4");
+//    statement.execute("drop table if exists hive_carbon_table5");
+//    statement.execute("drop table if exists hive_table");
+//    statement.execute("drop table if exists hive_table_complex");
+//    statement.execute("CREATE external TABLE hive_table_complex(arrayField  ARRAY<STRING>, mapField MAP<String, String>, structField STRUCT<city: String, pincode: int>) ROW FORMAT SERDE 'org.apache.hadoop.hive.contrib.serde2.MultiDelimitSerDe' WITH SERDEPROPERTIES ('field.delim'=',', 'collection.delim'='$', 'mapkey.delim'='@') location '/home/root1/projects/carbondata/integration/hive/src/main/resources/complex/' TBLPROPERTIES('external.table.purge'='false')");
+//    statement.execute("CREATE external TABLE hive_table( shortField SMALLINT, intField INT, bigintField BIGINT , doubleField DOUBLE, stringField STRING, timestampField TIMESTAMP, decimalField DECIMAL(18,2), dateField DATE, charField CHAR(5), floatField FLOAT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' location '/home/root1/projects/carbondata/integration/hive/src/main/resources/csv/' TBLPROPERTIES ('external.table.purge'='false')");
   }
 
-  @Test
-  public void verifyDataAfterLoad() throws Exception {
-    statement.execute("drop table if exists hive_carbon_table4");
-    statement.execute("CREATE TABLE hive_carbon_table4(shortField SMALLINT , intField INT, bigintField BIGINT , doubleField DOUBLE, stringField STRING, timestampField TIMESTAMP, decimalField DECIMAL(18,2), dateField DATE, charField CHAR(5), floatField FLOAT) stored by 'org.apache.carbondata.hive.CarbonStorageHandler'");
-    statement.execute("insert into hive_carbon_table4 select * from hive_table");
-    checkAnswer(statement.executeQuery("select * from hive_carbon_table4"),
-            getConnection().createStatement().executeQuery("select * from hive_table"));
-  }
+//  @Test
+//  public void verifyDataAfterLoad() throws Exception {
+//    statement.execute("drop table if exists hive_carbon_table4");
+//    statement.execute("CREATE TABLE hive_carbon_table4(shortField SMALLINT , intField INT, bigintField BIGINT , doubleField DOUBLE, stringField STRING, timestampField TIMESTAMP, decimalField DECIMAL(18,2), dateField DATE, charField CHAR(5), floatField FLOAT) stored by 'org.apache.carbondata.hive.CarbonStorageHandler'");
+//    statement.execute("insert into hive_carbon_table4 select * from hive_table");
+//    checkAnswer(statement.executeQuery("select * from hive_carbon_table4"),
+//            getConnection().createStatement().executeQuery("select * from hive_table"));
+//  }
+//
+//  @Test
+//  public void verifyDataAfterLoadUsingSortColumns() throws Exception {
+//    statement.execute("drop table if exists hive_carbon_table5");
+//    statement.execute(
+//        "CREATE TABLE hive_carbon_table5(shortField SMALLINT , intField INT, bigintField BIGINT , doubleField DOUBLE, stringField STRING, timestampField TIMESTAMP, decimalField DECIMAL(18,2), dateField DATE, charField CHAR(5), floatField FLOAT) stored by 'org.apache.carbondata.hive.CarbonStorageHandler'");
+//    statement.execute("insert into hive_carbon_table5 select * from hive_table");
+//    ResultSet resultSet = getConnection().createStatement()
+//        .executeQuery("select * from hive_carbon_table5");
+//    ResultSet hiveResults = getConnection().createStatement()
+//        .executeQuery("select * from hive_table");
+//    checkAnswer(resultSet, hiveResults);
+//  }
+//
+//  @Test
+//  public void testCreateAndLoadUsingComplexColumns() throws Exception {
+//    statement.execute("drop table if exists hive_carbon_table6");
+//    statement.execute(
+//        "CREATE TABLE hive_carbon_table6(arrayField  ARRAY<STRING>, mapField MAP<String, String>, structField STRUCT< city: String, pincode: int >) stored by 'org.apache.carbondata.hive.CarbonStorageHandler' TBLPROPERTIES ('complex_delimiter'='$,@')");
+//    statement.execute(
+//        "insert into hive_carbon_table6 select * from hive_table_complex");
+//    ResultSet hiveResult = getConnection().createStatement().executeQuery("select * from hive_table_complex where mapField['Key1']='Val1'");
+//    ResultSet carbonResult = getConnection().createStatement().executeQuery("select * from hive_carbon_table6 where mapField['Key1']='Val1'");
+//    checkAnswer(carbonResult, hiveResult);
+//  }
 
   @Test
-  public void verifyDataAfterLoadUsingSortColumns() throws Exception {
-    statement.execute("drop table if exists hive_carbon_table5");
-    statement.execute(
-        "CREATE TABLE hive_carbon_table5(shortField SMALLINT , intField INT, bigintField BIGINT , doubleField DOUBLE, stringField STRING, timestampField TIMESTAMP, decimalField DECIMAL(18,2), dateField DATE, charField CHAR(5), floatField FLOAT) stored by 'org.apache.carbondata.hive.CarbonStorageHandler'");
-    statement.execute("insert into hive_carbon_table5 select * from hive_table");
-    ResultSet resultSet = getConnection().createStatement()
-        .executeQuery("select * from hive_carbon_table5");
-    ResultSet hiveResults = getConnection().createStatement()
-        .executeQuery("select * from hive_table");
-    checkAnswer(resultSet, hiveResults);
-  }
-
-  @Test
-  public void testCreateAndLoadUsingComplexColumns() throws Exception {
-    statement.execute("drop table if exists hive_carbon_table6");
-    statement.execute(
-        "CREATE TABLE hive_carbon_table6(arrayField  ARRAY<STRING>, mapField MAP<String, String>, structField STRUCT< city: String, pincode: int >) stored by 'org.apache.carbondata.hive.CarbonStorageHandler' TBLPROPERTIES ('complex_delimiter'='$,@')");
-    statement.execute(
-        "insert into hive_carbon_table6 select * from hive_table_complex");
-    ResultSet hiveResult = getConnection().createStatement().executeQuery("select * from hive_table_complex where mapField['Key1']='Val1'");
-    ResultSet carbonResult = getConnection().createStatement().executeQuery("select * from hive_carbon_table6 where mapField['Key1']='Val1'");
-    checkAnswer(carbonResult, hiveResult);
+  public void aaa() throws Exception {
+    statement.execute("drop table temp_hive");
+    statement.execute("drop table temp_carbon");
+    statement.execute("create table temp_hive(a string)");
+    statement.execute("create table temp_carbon(a string) stored by 'org.apache.carbondata.hive.CarbonStorageHandler'");
+    statement.execute("insert into temp_hive values('k')");
+    statement.execute("insert into temp_hive values ('u')");
+    statement.execute("insert into temp_carbon select * from temp_hive");
+    checkAnswer(statement.executeQuery("select * from temp_hive left outer join temp_carbon"), getConnection().createStatement().executeQuery("select * from temp_hive left outer join temp_carbon"));
   }
 
 }

@@ -89,7 +89,8 @@ public abstract class HiveTestUtils {
       }
       int numOfColumns = expected.getMetaData().getColumnCount();
       for (int i = 1; i <= numOfColumns; i++) {
-        Assert.assertEquals(actual.getString(i), actual.getString(i));
+        System.out.println(" " + actual.getString(i));
+//        Assert.assertEquals(actual.getString(i), actual.getString(i));
       }
       System.out.println();
     }
