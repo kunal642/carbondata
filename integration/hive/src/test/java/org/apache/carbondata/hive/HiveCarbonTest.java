@@ -16,6 +16,7 @@
  */
 package org.apache.carbondata.hive;
 
+import java.io.File;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -39,6 +40,13 @@ public class HiveCarbonTest extends HiveTestUtils {
 
   private static Statement statement;
 
+  private static String resourceDirectoryPath = HiveCarbonTest.class.getResource("/").getPath()
+          +
+          "../." +
+          "./src/main/resources/";
+  private static final String CSV = "csv";
+  private static final String COMPLEX = "complex";
+
   @BeforeClass
   public static void setup() throws Exception {
     CarbonProperties.getInstance().addProperty(CarbonCommonConstants.ENABLE_OFFHEAP_SORT_DEFAULT, "false");
@@ -52,8 +60,10 @@ public class HiveCarbonTest extends HiveTestUtils {
     statement.execute("drop table if exists hive_carbon_table5");
     statement.execute("drop table if exists hive_table");
     statement.execute("drop table if exists hive_table_complex");
-    statement.execute("CREATE external TABLE hive_table_complex(arrayField  ARRAY<STRING>, mapField MAP<String, String>, structField STRUCT<city: String, pincode: int>) ROW FORMAT SERDE 'org.apache.hadoop.hive.contrib.serde2.MultiDelimitSerDe' WITH SERDEPROPERTIES ('field.delim'=',', 'collection.delim'='$', 'mapkey.delim'='@') location '/home/root1/projects/carbondata/integration/hive/src/main/resources/complex/' TBLPROPERTIES('external.table.purge'='false')");
-    statement.execute("CREATE external TABLE hive_table( shortField SMALLINT, intField INT, bigintField BIGINT , doubleField DOUBLE, stringField STRING, timestampField TIMESTAMP, decimalField DECIMAL(18,2), dateField DATE, charField CHAR(5), floatField FLOAT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' location '/home/root1/projects/carbondata/integration/hive/src/main/resources/csv/' TBLPROPERTIES ('external.table.purge'='false')");
+    String csvFilePath = (resourceDirectoryPath + CSV).replace("\\", "/");
+    String complexFilePath = (resourceDirectoryPath + COMPLEX).replace("\\", "/");
+    statement.execute(String.format("CREATE external TABLE hive_table_complex(arrayField  ARRAY<STRING>, mapField MAP<String, String>, structField STRUCT<city: String, pincode: int>) ROW FORMAT SERDE 'org.apache.hadoop.hive.contrib.serde2.MultiDelimitSerDe' WITH SERDEPROPERTIES ('field.delim'=',', 'collection.delim'='$', 'mapkey.delim'='@') location '%s' TBLPROPERTIES('external.table.purge'='false')", complexFilePath));
+    statement.execute(String.format("CREATE external TABLE hive_table(shortField SMALLINT, intField INT, bigintField BIGINT, doubleField DOUBLE, stringField STRING, timestampField TIMESTAMP, decimalField DECIMAL(18,2), dateField DATE, charField CHAR(5), floatField FLOAT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' location '%s' TBLPROPERTIES ('external.table.purge'='false')", csvFilePath));
   }
 
   @Test

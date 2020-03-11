@@ -32,11 +32,9 @@ import org.apache.carbondata.core.metadata.schema.table.column.CarbonDimension;
 import org.apache.carbondata.hadoop.readsupport.CarbonReadSupport;
 
 import org.apache.hadoop.hive.common.type.HiveDecimal;
-import org.apache.hadoop.hive.serde2.io.DateWritable;
-import org.apache.hadoop.hive.serde2.io.DoubleWritable;
-import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
-import org.apache.hadoop.hive.serde2.io.ShortWritable;
-import org.apache.hadoop.hive.serde2.io.TimestampWritable;
+import org.apache.hadoop.hive.serde2.io.*;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.WritableDateObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.WritableTimestampObjectInspector;
 import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.BooleanWritable;
 import org.apache.hadoop.io.BytesWritable;
@@ -236,13 +234,10 @@ public class WritableReadSupport<T> implements CarbonReadSupport<T> {
     } else if (dataType == DataTypes.BINARY) {
       return new BytesWritable((byte[]) obj);
     } else if (dataType == DataTypes.DATE) {
-      Calendar c = Calendar.getInstance();
-      c.setTime(new Date(0));
-      c.add(Calendar.DAY_OF_YEAR, (Integer) obj);
-      Date date = new java.sql.Date(c.getTime().getTime());
-      return new DateWritable(date);
+      return new DateWritableV2((Integer) obj);
     } else if (dataType == DataTypes.TIMESTAMP) {
-      return new TimestampWritable(new Timestamp((long) obj / 1000));
+      WritableTimestampObjectInspector ins = new WritableTimestampObjectInspector();
+      return ins.getPrimitiveWritableObject(ins.create(new Timestamp((long) obj / 1000)));
     } else if (dataType == DataTypes.STRING) {
       return new Text(obj.toString());
     } else if (DataTypes.isArrayType(dataType)) {
