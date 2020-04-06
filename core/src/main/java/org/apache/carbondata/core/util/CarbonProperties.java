@@ -855,11 +855,11 @@ public final class CarbonProperties {
    * Return the store path
    */
   public static String getStorePath() {
-    String storeLocation = getInstance().getProperty(CarbonCommonConstants.STORE_LOCATION);
-    if (storeLocation == null) {
-      storeLocation = FileFactory.getConfiguration().get("hive.metastore.warehouse.dir");
+    String storePath = getInstance().getProperty(CarbonCommonConstants.STORE_LOCATION);
+    if (storePath == null) {
+      storePath = FileFactory.getConfiguration().get("hive.metastore.warehouse.dir");
     }
-    return storeLocation;
+    return storePath;
   }
 
   /**
