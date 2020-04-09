@@ -202,7 +202,7 @@ public class CarbonIndexFileMergeWriter {
     return null;
   }
 
-  private String writeMergeIndexFileBasedOnSegmentFile(String segmentId,
+  public String writeMergeIndexFileBasedOnSegmentFile(String segmentId,
       List<String> indexFileNamesTobeAdded, SegmentFileStore segmentFileStore,
       CarbonFile[] indexFiles, String uuid, String partitionPath) throws IOException {
     SegmentIndexFileStore fileStore = new SegmentIndexFileStore();
@@ -253,7 +253,7 @@ public class CarbonIndexFileMergeWriter {
           }
         }
       }
-    }
+    }export HADOOP_CLIENT_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000" hive
     String newSegmentFileName = SegmentFileStore.genSegmentFileName(segmentId, uuid)
         + CarbonTablePath.SEGMENT_EXT;
     String path = CarbonTablePath.getSegmentFilesLocation(table.getTablePath())

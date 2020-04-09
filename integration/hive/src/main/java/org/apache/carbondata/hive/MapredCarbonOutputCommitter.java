@@ -102,38 +102,10 @@ public class MapredCarbonOutputCommitter extends OutputCommitter {
             .get("carbonConf");
     CarbonLoadModel carbonLoadModel = MapredCarbonOutputFormat.getLoadModel(configuration);
     ThreadLocalSessionInfo.unsetAll();
-    List<String> partitionInfo = carbonLoadModel.getOutputFilesInfoHolder().getPartitionPath();
-    if (partitionInfo != null) {
-      List<String> outputPaths = (List<String>) ObjectSerializationUtil
-          .convertStringToObject(configuration.get("carbon.output.files.name"));
-      SegmentFileStore.FolderDetails finalFolderDetails = new SegmentFileStore.FolderDetails();
-      SegmentFileStore.SegmentFile finalSegmentFile = new SegmentFileStore.SegmentFile();
-      for (final String partitionPath : partitionInfo) {
-        Set<String> outputPath = outputPaths.stream()
-            .filter(x -> x.startsWith(partitionPath) && x.contains(".carbonindex"))
-            .map(x -> x.substring(partitionPath.length() + 1).split(":")[0])
-            .collect(Collectors.toSet());
-        SegmentFileStore.FolderDetails folderDetails = new SegmentFileStore.FolderDetails();
-        folderDetails.setFiles(outputPath);
-        folderDetails.setStatus("Success");
-        List<String> partitions = new ArrayList<>();
-        String newPartitionPath = partitionPath.substring(
-            carbonLoadModel.getCarbonDataLoadSchema().getCarbonTable().getTablePath().length());
-        partitions.addAll(Arrays.asList(newPartitionPath.split("/")));
-        folderDetails.setPartitions(partitions);
-        folderDetails.setRelative(true);
-        finalFolderDetails.merge(folderDetails);
-        finalSegmentFile.merge(SegmentFileStore.createSegmentFile(newPartitionPath, folderDetails));
-      }
-      String segmentFilesLocation = FileFactory
-          .getCarbonFile(CarbonTablePath.getSegmentFilesLocation(carbonLoadModel.getTablePath()))
-          .getAbsolutePath();
-      FileFactory.mkdirs(segmentFilesLocation);
-      String segmentFileName = SegmentFileStore.genSegmentFileName(carbonLoadModel.getSegmentId(),
-          String.valueOf(carbonLoadModel.getFactTimeStamp())) + CarbonTablePath.SEGMENT_EXT;
-      SegmentFileStore
-          .writeSegmentFile(finalSegmentFile, segmentFilesLocation + "/" + segmentFileName);
-    }
+    SegmentFileStore.writeSegmentFile(carbonLoadModel.getCarbonDataLoadSchema().getCarbonTable(),
+        carbonLoadModel.getSegmentId(), String.valueOf(carbonLoadModel.getFactTimeStamp()));
+    SegmentFileStore.mergeIndexAndWriteSegmentFile(carbonLoadModel.getCarbonDataLoadSchema().getCarbonTable(),
+        carbonLoadModel.getSegmentId(), String.valueOf(carbonLoadModel.getFactTimeStamp()));
     carbonOutputCommitter.commitJob(jobContext);
   }
 }

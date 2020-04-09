@@ -200,21 +200,16 @@ public class HiveCarbonUtil {
 
   private static void writeSchemaFile(TableInfo tableInfo) throws IOException {
     ThriftWrapperSchemaConverterImpl schemaConverter = new ThriftWrapperSchemaConverterImpl();
-    CarbonFile schemaFile =
-        FileFactory.getCarbonFile(CarbonTablePath.getSchemaFilePath(tableInfo.getTablePath()));
-    if (!schemaFile.exists()) {
-      if (!schemaFile.getParentFile().mkdirs()) {
-        throw new IOException(
-            "Unable to create directory: " + schemaFile.getParentFile().getAbsolutePath());
-      }
-    }
-    ThriftWriter thriftWriter = new ThriftWriter(schemaFile.getAbsolutePath(), false);
+    String schemaFilePath = CarbonTablePath.getSchemaFilePath(tableInfo.getTablePath());
+    String metadataPath = CarbonTablePath.getMetadataPath(tableInfo.getTablePath());
+    FileFactory.mkdirs(metadataPath);
+    ThriftWriter thriftWriter = new ThriftWriter(schemaFilePath, false);
     thriftWriter.open(FileWriteOperation.OVERWRITE);
     thriftWriter.write(schemaConverter
         .fromWrapperToExternalTableInfo(tableInfo, tableInfo.getDatabaseName(),
             tableInfo.getFactTable().getTableName()));
     thriftWriter.close();
-    schemaFile.setLastModifiedTime(System.currentTimeMillis());
+    FileFactory.getCarbonFile(schemaFilePath).setLastModifiedTime(System.currentTimeMillis());
   }
 
   public static HiveMetaHook getMetaHook() {

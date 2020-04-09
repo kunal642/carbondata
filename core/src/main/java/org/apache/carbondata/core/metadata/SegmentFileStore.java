@@ -65,6 +65,7 @@ import org.apache.carbondata.core.util.CarbonUtil;
 import org.apache.carbondata.core.util.DataFileFooterConverter;
 import org.apache.carbondata.core.util.ObjectSerializationUtil;
 import org.apache.carbondata.core.util.path.CarbonTablePath;
+import org.apache.carbondata.core.writer.CarbonIndexFileMergeWriter;
 
 import com.google.gson.Gson;
 import org.apache.hadoop.conf.Configuration;
@@ -318,6 +319,28 @@ public class SegmentFileStore {
       return true;
     }
     return false;
+  }
+
+  public static void mergeIndexAndWriteSegmentFile(CarbonTable carbonTable, String segmentId,
+      String UUID) {
+    String tablePath = carbonTable.getTablePath();
+    String segmentPath = CarbonTablePath.getSegmentPath(tablePath, segmentId);
+    CarbonFile segmentFolder = FileFactory.getCarbonFile(segmentPath);
+    CarbonFile[] indexFiles = segmentFolder.listFiles(new CarbonFileFilter() {
+      @Override
+      public boolean accept(CarbonFile file) {
+        return (file.getName().endsWith(CarbonTablePath.INDEX_FILE_EXT) || file.getName()
+            .endsWith(CarbonTablePath.MERGE_INDEX_FILE_EXT));
+      }
+    });
+    String segmentFileName = genSegmentFileName(segmentId, UUID) + CarbonTablePath.SEGMENT_EXT;
+    try {
+      SegmentFileStore sfs = new SegmentFileStore(tablePath, segmentFileName);
+      new CarbonIndexFileMergeWriter(carbonTable)
+          .writeMergeIndexFileBasedOnSegmentFile(segmentId, null, sfs, indexFiles, UUID, null);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
