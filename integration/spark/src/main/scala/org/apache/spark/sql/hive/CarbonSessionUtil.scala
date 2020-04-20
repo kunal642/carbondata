@@ -17,20 +17,24 @@
 
 package org.apache.spark.sql.hive
 
+import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 
 import org.apache.spark.sql.{CarbonDatasourceHadoopRelation, CarbonEnv, CarbonSource, SparkSession}
 import org.apache.spark.sql.catalyst.TableIdentifier
-import org.apache.spark.sql.catalyst.catalog.{CatalogTable, CatalogTablePartition, ExternalCatalogUtils}
+import org.apache.spark.sql.catalyst.catalog.{CatalogStorageFormat, CatalogTable, CatalogTablePartition, CatalogTableType, ExternalCatalogUtils}
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, SubqueryAlias}
 import org.apache.spark.sql.execution.datasources.LogicalRelation
 import org.apache.spark.sql.types.{MetadataBuilder, StructField, StructType}
 import org.apache.spark.sql.util.SparkTypeConverter
-import org.apache.spark.util.CarbonReflectionUtils
+import org.apache.spark.util.{CarbonReflectionUtils, PartitionCache}
 
 import org.apache.carbondata.common.logging.LogServiceFactory
+import org.apache.carbondata.converter.SparkDataTypeConverterImpl
+import org.apache.carbondata.core.metadata.schema.table.CarbonTable
 import org.apache.carbondata.core.metadata.schema.table.column.ColumnSchema
+import org.apache.carbondata.core.util.DataTypeUtil
 
 /**
  * This class refresh the relation from cache if the carbontable in
@@ -122,6 +126,43 @@ object CarbonSessionUtil {
       partitionFilters,
       sparkSession.sessionState.conf.sessionLocalTimeZone
     )
+  }
+
+  def prunePartitionsByFilter(partitionFilters: Seq[Expression],
+      sparkSession: SparkSession,
+      table: CarbonTable): Seq[CatalogTablePartition] = {
+    val startTime = System.currentTimeMillis()
+    val tableIdentifier = TableIdentifier(table.getTableName, Some(table.getDatabaseName))
+    val allPartitions = try {
+      PartitionCache.getPartitions(table.getAbsoluteTableIdentifier)
+    } catch {
+      case _: Exception =>
+        sparkSession.sessionState.catalog.listPartitions(tableIdentifier)
+    }
+    val schema: StructType = StructType(table
+      .getTableInfo
+      .getFactTable
+      .getListOfColumns
+      .asScala.sortBy(_.getSchemaOrdinal)
+      .map {
+        col =>
+          StructField(col.getColumnName,
+            SparkDataTypeConverterImpl.convertCarbonToSparkDataType(col.getDataType))
+      }
+      .toArray)
+    val catalogTable = CatalogTable(tableIdentifier,
+      CatalogTableType.MANAGED,
+      CatalogStorageFormat.empty,
+      schema,
+      partitionColumnNames = table.getPartitionInfo.getColumnSchemaList.asScala.map(_.getColumnName))
+    val pruned = ExternalCatalogUtils.prunePartitionsByFilter(
+      catalogTable,
+      allPartitions,
+      partitionFilters,
+      sparkSession.sessionState.conf.sessionLocalTimeZone
+    )
+    LOGGER.info("Time taken to prune partitions: " + (System.currentTimeMillis() - startTime))
+    pruned
   }
 
   /**

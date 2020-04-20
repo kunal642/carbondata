@@ -1464,7 +1464,7 @@ public final class CarbonCommonConstants {
   public static final String CARBON_READ_PARTITION_HIVE_DIRECT =
       "carbon.read.partition.hive.direct";
 
-  public static final String CARBON_READ_PARTITION_HIVE_DIRECT_DEFAULT = "true";
+  public static final String CARBON_READ_PARTITION_HIVE_DIRECT_DEFAULT = "false";
 
   /**
    * If the heap memory allocations of the given size is greater or equal than this value,
