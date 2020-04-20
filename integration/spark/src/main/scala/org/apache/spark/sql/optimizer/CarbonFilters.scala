@@ -30,7 +30,7 @@ import org.apache.spark.sql.CarbonContainsWith
 import org.apache.spark.sql.CarbonEndsWith
 import org.apache.spark.sql.carbondata.execution.datasources.CarbonSparkDataSourceUtil
 import org.apache.spark.sql.catalyst.TableIdentifier
-import org.apache.spark.sql.hive.{CarbonHiveIndexMetadataUtil, CarbonSessionCatalogUtil}
+import org.apache.spark.sql.hive.{CarbonHiveIndexMetadataUtil, CarbonSessionCatalogUtil, CarbonSessionUtil}
 import org.apache.spark.util.{CarbonReflectionUtils, SparkUtil}
 
 import org.apache.carbondata.core.constants.CarbonCommonConstants
@@ -46,6 +46,7 @@ import org.apache.carbondata.core.util.CarbonProperties
 import org.apache.carbondata.geo.{GeoUtils, InPolygon}
 import org.apache.carbondata.geo.scan.expression.{PolygonExpression => CarbonPolygonExpression}
 import org.apache.carbondata.index.{TextMatch, TextMatchLimit}
+//import org.apache.carbondata.spark.util.PartitionCache
 
 /**
  * All filter conversions are done here.
@@ -399,18 +400,11 @@ object CarbonFilters {
           sparkSession.sessionState.catalog.listPartitionsByFilter(identifier, partitionFilters)
         } else {
           // Read partitions alternatively by first get all partitions then filter them
-          CarbonSessionCatalogUtil.getPartitionsAlternate(
-            partitionFilters,
-            sparkSession,
-            identifier)
+          CarbonSessionUtil.prunePartitionsByFilter(partitionFilters, sparkSession, carbonTable)
         }
       } catch {
         case e: Exception =>
-          // Get partition information alternatively.
-          CarbonSessionCatalogUtil.getPartitionsAlternate(
-            partitionFilters,
-            sparkSession,
-            identifier)
+          throw e
       }
     }
     Some(partitions.map { partition =>
