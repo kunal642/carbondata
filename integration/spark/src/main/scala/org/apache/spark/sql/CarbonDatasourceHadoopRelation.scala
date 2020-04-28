@@ -27,7 +27,7 @@ import org.apache.spark.sql.execution.command.management.CarbonInsertIntoCommand
 import org.apache.spark.sql.execution.strategy.PushDownHelper
 import org.apache.spark.sql.hive.CarbonRelation
 import org.apache.spark.sql.optimizer.CarbonFilters
-import org.apache.spark.sql.sources.{BaseRelation, Filter, InsertableRelation}
+import org.apache.spark.sql.sources.{And, BaseRelation, Filter, InsertableRelation, Or}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CarbonException
 
@@ -58,7 +58,7 @@ case class CarbonDatasourceHadoopRelation(
 
   @transient lazy val carbonRelation: CarbonRelation =
     CarbonEnv.getInstance(sparkSession).carbonMetaStore.
-    createCarbonRelation(parameters, identifier, sparkSession)
+      createCarbonRelation(parameters, identifier, sparkSession)
 
 
   @transient lazy val carbonTable: CarbonTable = carbonRelation.carbonTable
@@ -67,12 +67,68 @@ case class CarbonDatasourceHadoopRelation(
 
   override def schema: StructType = tableSchema.getOrElse(carbonRelation.schema)
 
+  private def sortFilter(filter: Filter, ordinal: Int = -1): Filter = {
+    filter match {
+      case and@And(left, right) =>
+        if (left.references.length == 1 && right.references.length == 1) {
+          val leftColumn = left.references.map(leftRef => carbonTable
+            .getCreateOrderColumn
+            .asScala
+            .find(_.getColName.equals(leftRef))).head.get
+          val rightColumn = right.references.map(rightRef => carbonTable
+            .getCreateOrderColumn
+            .asScala
+            .find(_.getColName.equals(rightRef))).head.get
+          if (!(leftColumn.isDimension ^ rightColumn.isDimension)) {
+            if (leftColumn.getOrdinal > rightColumn.getOrdinal) {
+              And(right, left)
+            } else {
+              and
+            }
+          } else if (leftColumn.isMeasure && rightColumn.isDimension) {
+            And(right, left)
+          } else {
+            and
+          }
+        } else {
+          And(sortFilter(left, -1), sortFilter(right, -1))
+        }
+      case or@Or(left, right) =>
+        if (left.references.length == 1 && right.references.length == 1) {
+          val leftColumn = left.references.map(leftRef => carbonTable
+            .getCreateOrderColumn
+            .asScala
+            .find(_.getColName.equals(leftRef))).head.get
+          val rightColumn = right.references.map(rightRef => carbonTable
+            .getCreateOrderColumn
+            .asScala
+            .find(_.getColName.equals(rightRef))).head.get
+          if (!(leftColumn.isDimension ^ rightColumn.isDimension)) {
+            if (leftColumn.getOrdinal > rightColumn.getOrdinal) {
+              Or(right, left)
+            } else {
+              or
+            }
+          } else if (leftColumn.isMeasure && rightColumn.isDimension) {
+            Or(right, left)
+          } else {
+            or
+          }
+        } else {
+          Or(sortFilter(left, -1), sortFilter(right, -1))
+        }
+      case others => others
+    }
+  }
+
   def buildScan(requiredColumns: Array[String],
       filterComplex: Seq[org.apache.spark.sql.catalyst.expressions.Expression],
       projects: Seq[NamedExpression],
       filters: Array[Filter],
       partitions: Seq[PartitionSpec]): RDD[InternalRow] = {
-    val filterExpression: Option[Expression] = filters.flatMap { filter =>
+    val d = filters.map(sortFilter(_))
+
+    val filterExpression = d.flatMap { filter =>
       CarbonFilters.createCarbonFilter(schema, filter,
         carbonTable.getTableInfo.getFactTable.getTableProperties.asScala)
     }.reduceOption(new AndExpression(_, _))
@@ -114,7 +170,7 @@ case class CarbonDatasourceHadoopRelation(
   override def insert(data: DataFrame, overwrite: Boolean): Unit = {
     if (carbonRelation.output.size > CarbonCommonConstants.DEFAULT_MAX_NUMBER_OF_COLUMNS) {
       CarbonException.analysisException("Maximum supported column by carbon is: " +
-        CarbonCommonConstants.DEFAULT_MAX_NUMBER_OF_COLUMNS)
+                                        CarbonCommonConstants.DEFAULT_MAX_NUMBER_OF_COLUMNS)
     }
     if (data.logicalPlan.output.size >= carbonRelation.output.size) {
       CarbonInsertIntoCommand(
