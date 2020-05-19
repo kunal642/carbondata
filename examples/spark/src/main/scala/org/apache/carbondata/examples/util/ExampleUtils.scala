@@ -64,8 +64,9 @@ object ExampleUtils {
       .config("spark.sql.warehouse.dir", warehouse)
       .config("spark.driver.host", "localhost")
       .config("spark.sql.crossJoin.enabled", "true")
+      .config("spark.sql.extensions","org.apache.spark.sql.CarbonExtensions")
       .enableHiveSupport()
-      .getOrCreateCarbonSession(storeLocation, metaStoreDB)
+      .getOrCreate()
     CarbonEnv.getInstance(spark)
     spark.sparkContext.setLogLevel("ERROR")
     spark

@@ -17,12 +17,16 @@
 
 package org.apache.spark.sql
 
+import org.apache.spark.sql.catalyst.TableIdentifier
+import org.apache.spark.sql.catalyst.expressions.{ArrayContains, AttributeReference, EqualTo, ExprId, In, ListQuery, NamedExpression}
 import org.apache.spark.sql.catalyst.parser.ParserInterface
-import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
+import org.apache.spark.sql.catalyst.plans.JoinType
+import org.apache.spark.sql.catalyst.plans.logical.{Filter, Join, LogicalPlan, Project, SubqueryAlias}
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.strategy.{CarbonLateDecodeStrategy, DDLStrategy, StreamingTableStrategy}
 import org.apache.spark.sql.hive.{CarbonIUDAnalysisRule, CarbonPreInsertionCasts}
 import org.apache.spark.sql.parser.CarbonExtensionSqlParser
+import org.apache.spark.sql.secondaryindex.optimizer.CarbonSecondaryIndexOptimizer
 
 /**
  * use SparkSessionExtensions to inject Carbon's extensions.
@@ -77,7 +81,45 @@ case class CarbonOptimizerRule(session: SparkSession) extends Rule[LogicalPlan] 
         }
       }
     }
-    plan
+
+    val x = CarbonUtils.collectCarbonRelation(plan).toList match {
+      case relation :: _ =>
+        val sessionParams = CarbonEnv.getInstance(session).carbonSessionInfo.getSessionParams
+        val isPOCFeature = sessionParams.getProperty("carbon.ispoc", "false").toBoolean
+        if (isPOCFeature) {
+          plan transform {
+            case a@Filter(condition, child) =>
+              condition match {
+                case ArrayContains(left, right) =>
+                  val tableName = relation.carbonTable.getTableName + "_" +
+                                  left.asInstanceOf[AttributeReference].name
+                  val rewrittenPlan = new CarbonSecondaryIndexOptimizer(session).retrievePlan(
+                    session.sessionState
+                      .catalog.lookupRelation(TableIdentifier(tableName,
+                      Some(relation.carbonTable.getDatabaseName))))(session)
+                  val refCol = sessionParams.getProperty(
+                    "carbon.dummysi." + relation.carbonTable.getTableName + ".primarykey")
+                  val parentRefCol = child.output.find(_.name.equalsIgnoreCase(refCol)).get
+                  val childReferenceColExpression = rewrittenPlan
+                    .output.find(_.name.equalsIgnoreCase(refCol)).get
+                  val childFilterExpression = rewrittenPlan
+                    .output
+                    .find(_.name.equalsIgnoreCase(left.asInstanceOf[AttributeReference].name)).get
+                  Filter(In(parentRefCol,
+                    Seq(ListQuery(Project(Seq(childReferenceColExpression),
+                      Filter(EqualTo(childFilterExpression, right),
+                        SubqueryAlias(tableName, rewrittenPlan))),
+                      childOutputs = Seq(childReferenceColExpression)))),
+                    child)
+                case _ => a
+              }
+          }
+        } else {
+          plan
+        }
+      case Nil => plan
+    }
+    x
   }
 }
 

@@ -108,7 +108,12 @@ public class SessionParams implements Serializable, Cloneable {
    * @return properties value
    */
   public SessionParams addProperty(String key, String value) throws InvalidConfigurationException {
-    boolean isValidConf = validateKeyValue(key, value);
+    boolean isValidConf;
+    if (key.equalsIgnoreCase("carbon.ispoc") || key.contains("carbon.dummysi")) {
+      isValidConf = true;
+    } else {
+      isValidConf = validateKeyValue(key, value);
+    }
     if (isValidConf) {
       if (key.equals(CarbonLoadOptionConstants.CARBON_OPTIONS_BAD_RECORDS_ACTION)) {
         value = value.toUpperCase();

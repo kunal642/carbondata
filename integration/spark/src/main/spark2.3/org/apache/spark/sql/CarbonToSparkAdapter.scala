@@ -164,7 +164,7 @@ class CarbonOptimizer(
     Seq(new CarbonSITransformationRule(session)): _*)
 
   override def batches: Seq[Batch] = {
-    mvRules ++ convertedBatch() :+ iudRule :+ secondaryIndexRule
+    convertedBatch() :+ iudRule :+ secondaryIndexRule
   }
 
   def convertedBatch(): Seq[Batch] = {

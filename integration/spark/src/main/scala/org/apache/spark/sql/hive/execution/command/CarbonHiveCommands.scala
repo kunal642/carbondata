@@ -56,7 +56,7 @@ case class CarbonDropDatabaseCommand(command: DropDatabaseCommand)
     try {
       databaseLocation = CarbonEnv.getDatabaseLocation(dbName, sparkSession)
     } catch {
-      case e: NoSuchDatabaseException =>
+      case _: NoSuchDatabaseException =>
         // if database not found and ifExists true return empty
         if (command.ifExists) {
           return rows
@@ -96,6 +96,10 @@ case class CarbonSetCommand(command: SetCommand)
 object CarbonSetCommand {
   def validateAndSetValue(sessionParams: SessionParams, key: String, value: String): Unit = {
     val isCarbonProperty: Boolean = CarbonProperties.getInstance().isCarbonProperty(key)
+    if (key.equalsIgnoreCase("carbon.ispoc") || key.contains("carbon.dummysi")) {
+      sessionParams.addProperty(key.toLowerCase(), value)
+      return
+    }
     if (key.startsWith(CarbonCommonConstants.CARBON_INPUT_SEGMENTS)) {
       if (key.split("\\.").length == 5) {
         sessionParams.addProperty(key.toLowerCase(), value)

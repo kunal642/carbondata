@@ -34,38 +34,34 @@ object SparkSessionExample {
   val rootPath = new File(this.getClass.getResource("/").getPath
                           + "../../../..").getCanonicalPath
   def main(args: Array[String]): Unit = {
-    val sparkSession = ExampleUtils.createSparkSession("SparkSessionExample")
+    val spark = ExampleUtils.createSparkSession("SparkSessionExample")
     val path = s"$rootPath/examples/spark/src/main/resources/data.csv"
-    sparkSession.sql("DROP TABLE IF EXISTS csv_table")
-    sparkSession.sql(
-      s"""
-         | CREATE TABLE csv_table(
-         | shortField SHORT,
-         | intField INT,
-         | bigintField LONG,
-         | doubleField DOUBLE,
-         | stringField STRING,
-         | timestampField STRING,
-         | decimalField DECIMAL(18,2),
-         | dateField STRING,
-         | charField CHAR(5))
-         | ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
-       """.stripMargin)
+        spark.sql("drop table if exists maintable")
+        spark.sql(
+          "create table maintable(a int, b array<string>, c array<string>, d int) stored as carbondata")
+        spark.sql(
+          "insert into maintable values (1, array('a','a','a'), array('x','x','x'), 3)")
+        spark.sql(
+          "insert into maintable values (2, array('a','b','c'), array('x','y','z'), 4)")
+        spark.sql("select * from maintable").show()
+        spark.sql("drop table if exists maintable_b")
+        spark.sql("drop table if exists maintable_c")
+        spark.sql("create table maintable_b(a int, b string) stored as carbondata")
+        spark.sql("insert into maintable_b values(1, 'a')")
+        spark.sql("insert into maintable_b values(2, 'a')")
+        spark.sql("insert into maintable_b values(2, 'b')")
+        spark.sql("insert into maintable_b values(2, 'c')")
 
-    sparkSession.sql(
-      s"""
-         | LOAD DATA LOCAL INPATH '$path'
-         | INTO TABLE csv_table
-       """.stripMargin)
+        spark.sql("create table maintable_c(a int, c string) stored as carbondata")
+        spark.sql("insert into maintable_c values(1, 'x')")
+        spark.sql("insert into maintable_c values(2, 'y')")
+        spark.sql("insert into maintable_c values(2, 'z')")
+        spark.sql("insert into maintable_c values(2, 'x')")
+//    spark.sql("select * from maintable where a in (select a from maintable_b where b='a')").explain(true)
+    spark.sql("set carbon.ispoc=true")
+    spark.sql("set carbon.dummysi.maintable.primaryKey=a")
 
-    sparkSession.sql("SELECT * FROM csv_table").show()
-
-    sparkTableExample(sparkSession)
-    hiveTableExample(sparkSession)
-
-    // Drop table
-    sparkSession.sql("DROP TABLE IF EXISTS csv_table")
-    sparkSession.stop()
+    spark.sql("select * from maintable where array_contains(c, 'y')").explain(true)
   }
 
   def sparkTableExample(sparkSession: SparkSession): Unit = {
