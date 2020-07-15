@@ -220,14 +220,12 @@ public final class IndexStoreManager {
 
   public TableIndex registerIndex(CarbonTable table,
       IndexSchema indexSchema,  IndexFactory indexFactory) {
-    String tableUniqueName = table.getCarbonTableIdentifier().getTableUniqueName();
     // Just update the segmentRefreshMap with the table if not added.
     getTableSegmentRefresher(table);
     List<TableIndex> tableIndices = allIndexes.get(table.getTableId());
     if (tableIndices == null) {
       String keyUsingTablePath = getKeyUsingTablePath(table.getTablePath());
       if (keyUsingTablePath != null) {
-        tableUniqueName = keyUsingTablePath;
         tableIndices = allIndexes.get(table.getTableId());
       }
     }

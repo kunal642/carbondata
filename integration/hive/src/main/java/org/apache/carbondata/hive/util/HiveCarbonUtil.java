@@ -81,7 +81,7 @@ public class HiveCarbonUtil {
     String partitionColumnTypes =
         tableProperties.get(hive_metastoreConstants.META_TABLE_PARTITION_COLUMN_TYPES);
     if (partitionColumns != null) {
-      columns = columns + "," + partitionColumns;
+      columns = columns + "," + partitionColumns.replace("/", ",");
       columnTypes = columnTypes + ":" + partitionColumnTypes;
     }
     String[] columnTypeArray = splitSchemaStringToArray(columnTypes);

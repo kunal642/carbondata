@@ -37,7 +37,7 @@ import org.apache.hadoop.conf.Configuration;
  */
 public class CarbonTablePath {
 
-  private static final String METADATA_DIR = "Metadata";
+  public static final String METADATA_DIR = "Metadata";
   private static final String DICTIONARY_EXT = ".dict";
   public static final String SCHEMA_FILE = "schema";
   private static final String FACT_DIR = "Fact";
@@ -45,7 +45,7 @@ public class CarbonTablePath {
   private static final String PARTITION_PREFIX = "Part";
   private static final String DATA_PART_PREFIX = "part-";
   private static final String BATCH_PREFIX = "_batchno";
-  private static final String LOCK_DIR = "LockFiles";
+  public static final String LOCK_DIR = "LockFiles";
 
   public static final String TABLE_STATUS_FILE = "tablestatus";
   public static final String TABLE_STATUS_HISTORY_FILE = "tablestatus.history";

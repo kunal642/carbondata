@@ -206,7 +206,6 @@ public class CarbonIndexFileMergeWriter {
       List<String> indexFileNamesTobeAdded, SegmentFileStore segmentFileStore,
       CarbonFile[] indexFiles, String uuid, String partitionPath) throws IOException {
     SegmentIndexFileStore fileStore = new SegmentIndexFileStore();
-    // in case of partition table, merge index file to be created for each partition
     if (null != partitionPath) {
       for (CarbonFile indexFile : indexFiles) {
         fileStore.readIndexFile(indexFile);
@@ -215,6 +214,7 @@ public class CarbonIndexFileMergeWriter {
       fileStore.readAllIIndexOfSegment(segmentFileStore.getSegmentFile(),
           segmentFileStore.getTablePath(), SegmentStatus.SUCCESS, true);
     }
+    // in case of partition table, merge index file to be created for each partition
     Map<String, byte[]> indexMap = fileStore.getCarbonIndexMapWithFullPath();
     Map<String, Map<String, byte[]>> indexLocationMap = new HashMap<>();
     for (Map.Entry<String, byte[]> entry: indexMap.entrySet()) {

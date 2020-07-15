@@ -57,7 +57,6 @@ class DistributedCountRDD(@transient ss: SparkSession, indexInputFormat: IndexIn
       context: TaskContext): Iterator[(String, String)] = {
     val attemptId = new TaskAttemptID(DistributedRDDUtils.generateTrackerId,
       id, TaskType.MAP, split.index, 0)
-    val attemptContext = new TaskAttemptContextImpl(FileFactory.getConfiguration, attemptId)
     val inputSplits = split.asInstanceOf[IndexRDDPartition].inputSplit
     val numOfThreads = CarbonProperties.getInstance().getNumOfThreadsForExecutorPruning
     val service = Executors
