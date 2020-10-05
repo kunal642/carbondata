@@ -115,7 +115,7 @@ public class CarbonOutputCommitter extends FileOutputCommitter {
       LOGGER.warn(e.getMessage());
     }
     LOGGER.info(
-        "$$$ Time taken for the super.commitJob in ms: " + (System.currentTimeMillis() - t1));
+        "$$$ Time taken for  super.commitJob in ms: " + (System.currentTimeMillis() - t1));
 
     boolean overwriteSet = CarbonTableOutputFormat.isOverwriteSet(context.getConfiguration());
     CarbonLoadModel loadModel = CarbonTableOutputFormat.getLoadModel(context.getConfiguration());

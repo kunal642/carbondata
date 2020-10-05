@@ -57,11 +57,13 @@ import org.apache.carbondata.processing.loading.model.CarbonLoadModelBuilder;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
+import org.apache.hadoop.hive.metastore.Warehouse;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
 import org.apache.log4j.Logger;
+import org.datanucleus.util.StringUtils;
 
 public class HiveCarbonUtil {
 
@@ -116,28 +118,43 @@ public class HiveCarbonUtil {
     return carbonLoadModel;
   }
 
+  private static String getDefaultTablePath(Configuration conf, String databaseName, String tableName) {
+    try {
+      Warehouse wh = new Warehouse(conf);
+      return wh.getDefaultDatabasePath(databaseName) + "/" + tableName;
+    } catch (MetaException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   public static CarbonLoadModel getCarbonLoadModel(String tableName, String databaseName,
       String location, String sortColumnsString, String[] columns, String[] columnTypes,
       Configuration configuration) {
     CarbonLoadModel loadModel;
     CarbonTable carbonTable;
     try {
-      String schemaFilePath = CarbonTablePath.getSchemaFilePath(location);
-      AbsoluteTableIdentifier absoluteTableIdentifier =
-          AbsoluteTableIdentifier.from(location, databaseName, tableName, "");
-      if (FileFactory.getCarbonFile(schemaFilePath).exists()) {
-        carbonTable = SchemaReader.readCarbonTableFromStore(absoluteTableIdentifier);
+      if (StringUtils.isEmpty(location)) {
+        carbonTable = HiveCarbonUtil.getCarbonTable(configuration);
+        carbonTable.getTableInfo()
+            .setTablePath(getDefaultTablePath(configuration, databaseName, tableName));
       } else {
-        String carbonDataFile = CarbonUtil.getFilePathExternalFilePath(location, configuration);
-        if (carbonDataFile == null) {
-          carbonTable = CarbonTable.buildFromTableInfo(
-              getTableInfo(tableName, databaseName, location, sortColumnsString, columns,
-                  columnTypes, new ArrayList<>()));
+        String schemaFilePath = CarbonTablePath.getSchemaFilePath(location);
+        AbsoluteTableIdentifier absoluteTableIdentifier =
+            AbsoluteTableIdentifier.from(location, databaseName, tableName, "");
+        if (FileFactory.getCarbonFile(schemaFilePath).exists()) {
+          carbonTable = SchemaReader.readCarbonTableFromStore(absoluteTableIdentifier);
         } else {
-          carbonTable = CarbonTable.buildFromTableInfo(
-              SchemaReader.inferSchema(absoluteTableIdentifier, false, configuration));
+          String carbonDataFile = CarbonUtil.getFilePathExternalFilePath(location, configuration);
+          if (carbonDataFile == null) {
+            carbonTable = CarbonTable.buildFromTableInfo(
+                getTableInfo(tableName, databaseName, location, sortColumnsString, columns,
+                    columnTypes, new ArrayList<>()));
+          } else {
+            carbonTable = CarbonTable.buildFromTableInfo(
+                SchemaReader.inferSchema(absoluteTableIdentifier, false, configuration));
+          }
+          carbonTable.setTransactionalTable(false);
         }
-        carbonTable.setTransactionalTable(false);
       }
     } catch (SQLException | IOException e) {
       throw new RuntimeException("Unable to fetch schema for the table: " + tableName, e);
@@ -185,18 +202,18 @@ public class HiveCarbonUtil {
   private static String[][] validateColumnsAndTypes(String columns, String columnTypes) {
     String[] columnTypeArray = HiveCarbonUtil.splitSchemaStringToArray(columnTypes);
     String[] columnArray = columns.split(",");
-    String[] validatedColumnArray;
-    String[] validatedColumnTypeArray;
     int length = columnArray.length;
-    if (columnArray[length - 3].equalsIgnoreCase("BLOCK__OFFSET__INSIDE__FILE")) {
-      validatedColumnArray = new String[length - 3];
-      validatedColumnTypeArray = new String[length - 3];
-      System.arraycopy(columnArray, 0, validatedColumnArray, 0, length - 3);
-      System.arraycopy(columnTypeArray, 0, validatedColumnTypeArray, 0, length - 3);
-    } else {
-      validatedColumnArray = columnArray;
-      validatedColumnTypeArray = columnTypeArray;
+    int validLength = 0;
+    for (int i = 0; i < length ; i++) {
+      if (columnArray[i].equalsIgnoreCase("BLOCK__OFFSET__INSIDE__FILE")) {
+        break;
+      }
+      validLength = i + 1;
     }
+    String[] validatedColumnArray = new String[validLength];
+    String[] validatedColumnTypeArray = new String[validLength];
+    System.arraycopy(columnArray, 0, validatedColumnArray,0, validLength);
+    System.arraycopy(columnTypeArray, 0, validatedColumnTypeArray,0, validLength);
     return new String[][]{validatedColumnArray, validatedColumnTypeArray};
   }
 

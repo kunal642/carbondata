@@ -1519,7 +1519,7 @@ public final class CarbonCommonConstants {
   public static final String CARBON_PUSH_ROW_FILTERS_FOR_VECTOR =
       "carbon.push.rowfilters.for.vector";
 
-  public static final String CARBON_PUSH_ROW_FILTERS_FOR_VECTOR_DEFAULT = "false";
+  public static final String CARBON_PUSH_ROW_FILTERS_FOR_VECTOR_DEFAULT = "true";
 
   /**
    * max driver threads used for block pruning [1 to 4 threads]
