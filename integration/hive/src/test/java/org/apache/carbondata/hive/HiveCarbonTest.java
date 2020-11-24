@@ -249,6 +249,22 @@ public class HiveCarbonTest extends HiveTestUtils {
     checkAnswer(carbonResult, hiveResult);
   }
 
+  @Test
+  public void aa() throws Exception {
+//    statement.execute("CREATE TABLE carbon1(a int, b int)  stored by 'org.apache.carbondata.hive.CarbonStorageHandler'");
+//    statement.execute("CREATE TABLE carbon2(a int)  stored by 'org.apache.carbondata.hive.CarbonStorageHandler'");
+//    statement.execute("insert into carbon1 select 1,1");
+//    statement.execute("insert into carbon2 select 1");
+//    statement.execute("drop table hive1");
+//        statement.execute("CREATE TABLE hive1(a int, b int)");
+//        statement.execute("CREATE TABLE hive2(a int)");
+//        statement.execute("insert into hive1 select 1,1");
+//        statement.execute("insert into hive2 select 1");
+    ResultSet c = statement.executeQuery("select * from carbon1");
+
+    checkAnswer(c, statement.executeQuery("select * from hive1"));
+  }
+
   @AfterClass
   public static void tearDown() {
     try {

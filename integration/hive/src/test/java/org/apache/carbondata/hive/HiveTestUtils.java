@@ -68,7 +68,7 @@ public abstract class HiveTestUtils {
     List<String> actualValuesList = new ArrayList<>();
     while (expected.next()) {
       if (!actual.next()) {
-        return false;
+       Assert.fail();
       }
       int numOfColumnsExpected = expected.getMetaData().getColumnCount();
       Assert.assertTrue(numOfColumnsExpected > 0);

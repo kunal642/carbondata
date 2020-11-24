@@ -32,6 +32,7 @@ import org.apache.hadoop.security.authorize.{PolicyProvider, Service}
 import org.apache.spark.SparkConf
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 import org.apache.spark.sql.{CarbonEnv, SparkSession}
+import org.apache.spark.sql.hive.CarbonSessionUtil
 import org.apache.spark.sql.util.SparkSQLUtil
 
 import org.apache.carbondata.common.logging.LogServiceFactory
@@ -244,7 +245,7 @@ object IndexServer extends ServerInterface {
     if (serverIp.isEmpty) {
       throw new RuntimeException(s"Please set the server IP to use Index Cache Server")
     } else {
-      createCarbonSession()
+      CarbonSessionUtil.createCarbonSession()
       LOGGER.info("Starting Index Cache Server")
       val conf = new Configuration()
       val server: RPC.Server = new RPC.Builder(conf).setInstance(this)
@@ -274,24 +275,6 @@ object IndexServer extends ServerInterface {
     }
   }
 
-  private def createCarbonSession(): SparkSession = {
-    val spark = SparkSession
-      .builder().config(new SparkConf())
-      .appName("DistributedIndexServer")
-      .enableHiveSupport()
-      .config("spark.sql.extensions", "org.apache.spark.sql.CarbonExtensions")
-      .getOrCreate()
-    CarbonEnv.getInstance(spark)
-
-    SparkSession.setActiveSession(spark)
-    SparkSession.setDefaultSession(spark)
-    if (spark.sparkContext.getConf
-      .get("spark.dynamicAllocation.enabled", "false").equalsIgnoreCase("true")) {
-      throw new RuntimeException("Index server is not supported with dynamic allocation enabled")
-    }
-    spark
-  }
-
   /**
    * @return Return a new Client to communicate with the Index Server.
    */
@@ -305,7 +288,6 @@ object IndexServer extends ServerInterface {
    * @return Return a new Client to communicate with the Index Server.
    */
   def getClient(configuration: Configuration): ServerInterface = {
-
     import org.apache.hadoop.ipc.RPC
     RPC.getProtocolProxy(classOf[ServerInterface],
       RPC.getProtocolVersion(classOf[ServerInterface]),
